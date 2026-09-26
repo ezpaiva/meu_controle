@@ -12,6 +12,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Meu_controle">
         <activity
+            android:name=".telas.NovaConta"
+            android:exported="false" />
+        <activity
+            android:name=".telas.ListaContas"
+            android:exported="false" />
+        <activity
             android:name=".MainActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustResize">

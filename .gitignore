@@ -1,15 +1,27 @@
-*.iml
-.gradle
+# Gradle and build outputs
+.gradle/
+**/build/
 /local.properties
-/.idea/caches
-/.idea/libraries
+gradle/gradle-daemon-jvm.properties
+
+# Android build artifacts
+/captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+
+# IDE-local files (keep shared project configuration)
+*.iml
+/.idea/caches/
+/.idea/libraries/
 /.idea/modules.xml
 /.idea/workspace.xml
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
+/.idea/deviceManager.xml
+/.idea/shelf/
+
+# Operating system files
 .DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
-local.properties
+Thumbs.db

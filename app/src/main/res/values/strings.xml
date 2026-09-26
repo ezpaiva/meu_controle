@@ -1,3 +1,50 @@
 <resources>
-    <string name="app_name">meu_controle</string>
+    <string name="app_name">Meu Controle</string>
+    <string name="home_title">Meu Controle</string>
+    <string name="home_subtitle">Organize suas receitas e despesas</string>
+    <string name="open_receivables">Contas a Receber</string>
+    <string name="open_payables">Contas a Pagar</string>
+    <string name="accounts_title_receivable">Contas a Receber</string>
+    <string name="accounts_title_payable">Contas a Pagar</string>
+    <string name="accounts_subtitle">Acompanhe seus lançamentos</string>
+    <string name="new_account">Nova Conta</string>
+    <string name="nav_receivables">Receitas</string>
+    <string name="nav_payables">Despesas</string>
+    <string name="empty_accounts">Nenhuma conta cadastrada.</string>
+    <string name="due_date_label">Vencimento: %1$s</string>
+    <string name="status_label">Situação: %1$s</string>
+    <string name="new_receivable_title">Nova Conta a Receber</string>
+    <string name="new_payable_title">Nova Conta a Pagar</string>
+    <string name="description_hint">Descrição</string>
+    <string name="amount_hint">Valor (R$)</string>
+    <string name="due_date_hint">Data de vencimento</string>
+    <string name="category_label">Categoria</string>
+    <string name="type_label">Tipo: %1$s</string>
+    <string name="status_field_label">Situação</string>
+    <string name="save_account">Salvar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="type_receivable">Receber</string>
+    <string name="type_payable">Pagar</string>
+    <string name="status_pending">Pendente</string>
+    <string name="status_completed_receivable">Recebido</string>
+    <string name="status_completed_payable">Pago</string>
+    <string name="validation_description">Informe a descrição.</string>
+    <string name="validation_amount">Informe um valor válido, maior que zero e com até duas casas decimais.</string>
+    <string name="validation_date">Selecione uma data de vencimento válida.</string>
+    <string name="save_error">Não foi possível salvar a conta.</string>
+    <string name="load_error">Não foi possível carregar as contas.</string>
+    <string-array name="income_categories">
+        <item>Salário</item>
+        <item>Vendas</item>
+        <item>Investimentos</item>
+        <item>Outros</item>
+    </string-array>
+    <string-array name="expense_categories">
+        <item>Alimentação</item>
+        <item>Moradia</item>
+        <item>Transporte</item>
+        <item>Saúde</item>
+        <item>Lazer</item>
+        <item>Outros</item>
+    </string-array>
 </resources>
