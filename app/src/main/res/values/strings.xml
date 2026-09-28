@@ -2,7 +2,23 @@
     <string name="app_name">Meu Controle</string>
     <string name="home_title">Meu Controle</string>
     <string name="home_subtitle">Organize suas receitas e despesas</string>
+    <string name="login_title">Entrar</string>
+    <string name="login_subtitle">Acesse sua conta para continuar</string>
+    <string name="label_email">E-mail</string>
+    <string name="hint_email">Digite seu e-mail</string>
+    <string name="label_senha">Senha</string>
+    <string name="btn_entrar">Entrar"</string>
+    <string name="login_footer_pergunta">Não tem conta?</string>"
+    <string name="login_footer_link">Criar uma conta</string>"
+    <string name="voltar">Voltar</string>"
+    <string name="cadastro_title">Criar uma conta</string>
+    <string name="cadastro_subtitle">Preencha os campos abaixo para criar sua conta</string>
+    <string name="label_nome">Digite seu nome completo</string>"
     <string name="open_receivables">Contas a Receber</string>
+    <string name="hint_nome">João Silva</string>
+    <string name="label_confirmar_senha">Confirmar senha</string>"
+    <string name="btn_criar_conta">Criar conta</string>
+    <string name="cadastro_footer_link">Já tenho uma conta</string>"
     <string name="open_payables">Contas a Pagar</string>
     <string name="accounts_title_receivable">Contas a Receber</string>
     <string name="accounts_title_payable">Contas a Pagar</string>
@@ -33,6 +49,12 @@
     <string name="validation_date">Selecione uma data de vencimento válida.</string>
     <string name="save_error">Não foi possível salvar a conta.</string>
     <string name="load_error">Não foi possível carregar as contas.</string>
+    <string name="error_email" />
+    <string name="error_senha_vazia" />
+    <string name="error_nome" />
+    <string name="error_senha_curta" />
+    <string name="error_senhas_diferentes" />
+    <string name="msg_conta_criada" />
     <string-array name="income_categories">
         <item>Salário</item>
         <item>Vendas</item>

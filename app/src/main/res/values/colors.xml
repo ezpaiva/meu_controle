@@ -2,4 +2,18 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Paleta "Meu Controle" -->
+    <color name="primary_green">#6D28D9</color>
+    <color name="primary_green_dark">#5B21B6</color>
+
+    <color name="text_primary">#1A1A1A</color>
+    <color name="text_secondary">#6B7280</color>
+    <color name="text_label">#374151</color>
+    <color name="text_hint">#9CA3AF</color>
+
+    <color name="field_background">#F5F5F7</color>
+    <color name="field_stroke">#E5E7EB</color>
+
+    <color name="screen_background">#FFFFFF</color>
 </resources>
