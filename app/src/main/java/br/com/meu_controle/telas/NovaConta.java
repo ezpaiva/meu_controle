@@ -58,12 +58,9 @@ public class NovaConta extends AppCompatActivity {
         titulo.setText(TipoConta.RECEBER.equals(tipoConta)
                 ? R.string.new_receivable_title
                 : R.string.new_payable_title);
-        TextView rotuloTipo = findViewById(R.id.account_type_label);
-        rotuloTipo.setText(getString(
-                R.string.type_label,
-                getString(TipoConta.RECEBER.equals(tipoConta)
-                        ? R.string.type_receivable
-                        : R.string.type_payable)));
+        campoDescricao.setHint(TipoConta.RECEBER.equals(tipoConta)
+                ? R.string.receivable_description_hint
+                : R.string.payable_description_hint);
 
         configurarListas();
         definirVencimento(LocalDate.now());

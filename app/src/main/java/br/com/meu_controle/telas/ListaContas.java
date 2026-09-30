@@ -1,6 +1,7 @@
 package br.com.meu_controle.telas;
 
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -10,6 +11,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.card.MaterialCardView;
 
 import br.com.meu_controle.R;
 import br.com.meu_controle.dados.local.BancoDados;
@@ -29,6 +33,13 @@ public class ListaContas extends AppCompatActivity {
     private RepositorioContas repositorio;
     private LinearLayout listaContas;
     private TextView mensagemVazia;
+    private View cartaoListaVazia;
+    private MaterialCardView cartaoResumo;
+    private TextView rotuloResumo;
+    private TextView valorResumo;
+    private TextView quantidadeResumo;
+    private MaterialButton botaoNovaConta;
+    private boolean exibindoReceitas;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,25 +52,31 @@ public class ListaContas extends AppCompatActivity {
             finish();
             return;
         }
+        exibindoReceitas = TipoConta.RECEBER.equals(tipoConta);
 
         repositorio = new RepositorioContas(
                 BancoDados.obterInstancia(getApplicationContext()).contaDao());
         listaContas = findViewById(R.id.accounts_container);
         mensagemVazia = findViewById(R.id.empty_accounts_message);
+        cartaoListaVazia = findViewById(R.id.empty_accounts_card);
+        cartaoResumo = findViewById(R.id.accounts_summary_card);
+        rotuloResumo = findViewById(R.id.accounts_summary_label);
+        valorResumo = findViewById(R.id.accounts_summary_amount);
+        quantidadeResumo = findViewById(R.id.accounts_summary_count);
 
         TextView titulo = findViewById(R.id.accounts_title);
-        titulo.setText(TipoConta.RECEBER.equals(tipoConta)
+        titulo.setText(exibindoReceitas
                 ? R.string.accounts_title_receivable
                 : R.string.accounts_title_payable);
 
-        Button botaoNovaConta = findViewById(R.id.new_account_button);
+        botaoNovaConta = findViewById(R.id.new_account_button);
+        configurarResumoEAcao();
         botaoNovaConta.setOnClickListener(view -> abrirNovaConta());
 
-        boolean exibindoReceitas = TipoConta.RECEBER.equals(tipoConta);
         Button botaoReceitas = findViewById(R.id.nav_receivables);
         Button botaoDespesas = findViewById(R.id.nav_payables);
-        botaoReceitas.setEnabled(!exibindoReceitas);
-        botaoDespesas.setEnabled(exibindoReceitas);
+        botaoReceitas.setSelected(exibindoReceitas);
+        botaoDespesas.setSelected(!exibindoReceitas);
         botaoReceitas.setOnClickListener(view -> abrirContas(TipoConta.RECEBER));
         botaoDespesas.setOnClickListener(view -> abrirContas(TipoConta.PAGAR));
     }
@@ -78,6 +95,31 @@ public class ListaContas extends AppCompatActivity {
         startActivity(intent);
     }
 
+    private void configurarResumoEAcao() {
+        int corAcento = getColor(exibindoReceitas
+                ? R.color.receivables_accent
+                : R.color.payables_accent);
+        cartaoResumo.setCardBackgroundColor(corAcento);
+        rotuloResumo.setText(exibindoReceitas
+                ? R.string.total_receivables
+                : R.string.total_payables);
+        botaoNovaConta.setText(exibindoReceitas
+                ? R.string.new_receivable
+                : R.string.new_payable);
+        if (exibindoReceitas) {
+            botaoNovaConta.setBackgroundTintList(ColorStateList.valueOf(corAcento));
+            botaoNovaConta.setTextColor(getColor(R.color.white));
+            botaoNovaConta.setStrokeWidth(0);
+        } else {
+            botaoNovaConta.setBackgroundTintList(
+                    ColorStateList.valueOf(getColor(R.color.surface)));
+            botaoNovaConta.setTextColor(corAcento);
+            botaoNovaConta.setStrokeColor(ColorStateList.valueOf(corAcento));
+            botaoNovaConta.setStrokeWidth(Math.round(
+                    1 * getResources().getDisplayMetrics().density));
+        }
+    }
+
     private void abrirContas(String tipo) {
         if (tipo.equals(tipoConta)) {
             return;
@@ -93,7 +135,16 @@ public class ListaContas extends AppCompatActivity {
             @Override
             public void onSuccess(List<Conta> contas) {
                 listaContas.removeAllViews();
-                mensagemVazia.setVisibility(contas.isEmpty() ? View.VISIBLE : View.GONE);
+                boolean listaVazia = contas.isEmpty();
+                cartaoListaVazia.setVisibility(listaVazia ? View.VISIBLE : View.GONE);
+                mensagemVazia.setVisibility(listaVazia ? View.VISIBLE : View.GONE);
+                long totalCentavos = 0;
+                for (Conta conta : contas) {
+                    totalCentavos += conta.amountInCents;
+                }
+                valorResumo.setText(FormatoFinanceiro.formatAmount(totalCentavos));
+                quantidadeResumo.setText(getResources().getQuantityString(
+                        R.plurals.account_record_count, contas.size(), contas.size()));
                 LayoutInflater inflater = LayoutInflater.from(ListaContas.this);
                 for (Conta conta : contas) {
                     View linha = inflater.inflate(R.layout.item_account, listaContas, false);
@@ -112,14 +163,18 @@ public class ListaContas extends AppCompatActivity {
     private void preencherConta(View linha, Conta conta) {
         TextView descricao = linha.findViewById(R.id.account_description);
         TextView valor = linha.findViewById(R.id.account_amount);
-        TextView vencimento = linha.findViewById(R.id.account_due_date);
-        TextView categoria = linha.findViewById(R.id.account_category);
+        TextView metadata = linha.findViewById(R.id.account_metadata);
         TextView situacao = linha.findViewById(R.id.account_status);
 
         descricao.setText(conta.description);
         valor.setText(FormatoFinanceiro.formatAmount(conta.amountInCents));
-        vencimento.setText(FormatoFinanceiro.formatStoredDate(conta.dueDate));
-        categoria.setText(conta.category);
+        metadata.setText(getString(
+                R.string.account_metadata,
+                conta.category,
+                FormatoFinanceiro.formatStoredDate(conta.dueDate)));
+        valor.setTextColor(getColor(exibindoReceitas
+                ? R.color.receivables_accent_dark
+                : R.color.payables_accent_dark));
         boolean concluida = TipoConta.CONCLUIDA.equals(conta.status);
         int textoSituacao = concluida
                 ? (TipoConta.RECEBER.equals(tipoConta)
@@ -127,5 +182,11 @@ public class ListaContas extends AppCompatActivity {
                     : R.string.status_completed_payable)
                 : R.string.status_pending;
         situacao.setText(getString(R.string.status_label, getString(textoSituacao)));
+        situacao.setBackgroundResource(concluida
+                ? R.drawable.bg_status_completed
+                : R.drawable.bg_status_pending);
+        situacao.setTextColor(getColor(concluida
+                ? R.color.status_completed_text
+                : R.color.status_pending_text));
     }
 }
