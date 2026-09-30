@@ -47,7 +47,7 @@ O aplicativo oferecerá uma forma simples e organizada de registrar, consultar e
 - **Android Studio** — ambiente de desenvolvimento;
 - **XML** — construção das interfaces;
 - **GitHub** — controle de versão, hospedagem do código e colaboração;
-- **Banco de Dados (a definir)** — persistência local;
+- **Banco de Dados SQLite** — persistência local;
 - **API (a definir)** — comunicação com serviços externos.
 
 > As tecnologias e bibliotecas poderão ser atualizadas durante o desenvolvimento do projeto.
