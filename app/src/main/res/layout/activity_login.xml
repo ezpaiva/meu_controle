@@ -97,13 +97,9 @@
             android:layout_width="match_parent"
             android:layout_height="60dp"
             android:layout_marginTop="16dp"
-            android:backgroundTint="@color/primary_green"
             android:text="@string/btn_entrar"
-            android:textAllCaps="false"
-            android:textColor="@color/white"
             android:textSize="17sp"
-            android:textStyle="bold"
-            app:cornerRadius="12dp" />
+            android:textStyle="bold" />
 
         <!-- Rodapé: Não tem conta? Criar uma conta -->
         <LinearLayout
