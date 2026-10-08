@@ -13,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import br.com.meu_controle.R;
 import br.com.meu_controle.dados.local.BancoDados;
+import br.com.meu_controle.dados.local.SessaoUsuario;
 import br.com.meu_controle.dados.modelo.Conta;
 import br.com.meu_controle.dados.modelo.TipoConta;
 import br.com.meu_controle.dados.repositorio.RepositorioContas;
@@ -134,13 +135,16 @@ public class NovaConta extends AppCompatActivity {
         String situacao = campoSituacao.getSelectedItemPosition() == 0
                 ? TipoConta.PENDENTE
                 : TipoConta.CONCLUIDA;
+        SessaoUsuario sessao = new SessaoUsuario(this);
         Conta conta = new Conta(
                 descricao,
                 valorEmCentavos,
                 vencimento,
                 campoCategoria.getSelectedItem().toString(),
                 tipoConta,
-                situacao);
+                situacao,
+                sessao.obterEmail(),
+                sessao.obterNome());
 
         botaoSalvar.setEnabled(false);
         repositorio.inserir(conta, new RetornoRepositorio<Long>() {

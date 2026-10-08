@@ -40,5 +40,8 @@
     <color name="form_button_outline">#2E7D32</color>
     <color name="receita_fundo">#E8F5E9</color>
     <color name="receita_texto">#1B5E20</color>
+    <color name="profile_background">#F1F8F1</color>
+    <color name="profile_stroke">#DCE8DC</color>
+    <color name="profile_label">#628064</color>
     <color name="acao_excluir">#D32F2F</color>
 </resources>

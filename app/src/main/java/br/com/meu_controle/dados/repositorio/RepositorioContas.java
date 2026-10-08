@@ -21,10 +21,27 @@ public class RepositorioContas {
         this.contaDao = contaDao;
     }
 
-    public void buscarPorTipo(String type, RetornoRepositorio<List<Conta>> retorno) {
+    public void buscarPorTipo(String type, String ownerEmail, boolean compartilhar,
+                              RetornoRepositorio<List<Conta>> retorno) {
         executor.execute(() -> {
             try {
-                List<Conta> contas = contaDao.getByType(type);
+                List<Conta> contas = compartilhar
+                        ? contaDao.getByType(type)
+                        : contaDao.getByTypeAndOwner(type, ownerEmail);
+                mainHandler.post(() -> retorno.onSuccess(contas));
+            } catch (SQLiteException error) {
+                mainHandler.post(() -> retorno.onError(error));
+            }
+        });
+    }
+
+    public void buscarTodas(String ownerEmail, boolean compartilhar,
+                             RetornoRepositorio<List<Conta>> retorno) {
+        executor.execute(() -> {
+            try {
+                List<Conta> contas = compartilhar
+                        ? contaDao.getAll()
+                        : contaDao.getAllByOwner(ownerEmail);
                 mainHandler.post(() -> retorno.onSuccess(contas));
             } catch (SQLiteException error) {
                 mainHandler.post(() -> retorno.onError(error));

@@ -14,6 +14,7 @@ import androidx.core.view.WindowInsetsCompat;
 import com.google.android.material.button.MaterialButton;
 
 import br.com.meu_controle.R;
+import br.com.meu_controle.dados.local.SessaoUsuario;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -57,13 +58,15 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        if (senha.isEmpty()) {
-            editSenha.setError(getString(R.string.error_senha_vazia));
+        if (senha.length() < 6) {
+            editSenha.setError(getString(R.string.error_senha_curta));
             editSenha.requestFocus();
             return;
         }
 
-        // TODO: validar e-mail/senha no banco local (Room) antes de entrar.
+        // A autenticação remota será conectada posteriormente; o perfil local já
+        // permite manter o isolamento e a experiência offline do protótipo.
+        new SessaoUsuario(this).garantirPerfil(email);
         abrirTelaInicial();
     }
 

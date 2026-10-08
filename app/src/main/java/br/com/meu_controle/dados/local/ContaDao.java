@@ -14,6 +14,15 @@ public interface ContaDao {
     @Query("SELECT * FROM accounts WHERE type = :type ORDER BY dueDate ASC, id DESC")
     List<Conta> getByType(String type);
 
+    @Query("SELECT * FROM accounts WHERE type = :type AND (ownerEmail = :ownerEmail OR ownerEmail IS NULL) ORDER BY dueDate ASC, id DESC")
+    List<Conta> getByTypeAndOwner(String type, String ownerEmail);
+
+    @Query("SELECT * FROM accounts ORDER BY dueDate ASC, id DESC")
+    List<Conta> getAll();
+
+    @Query("SELECT * FROM accounts WHERE ownerEmail = :ownerEmail OR ownerEmail IS NULL ORDER BY dueDate ASC, id DESC")
+    List<Conta> getAllByOwner(String ownerEmail);
+
     @Insert
     long insert(Conta conta);
 }
