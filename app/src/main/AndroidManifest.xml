@@ -12,6 +12,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Meu_controle">
         <activity
+            android:name=".PerfilActivity"
+            android:exported="false" />
+        <activity
             android:name=".CadastroActivity"
             android:exported="false" />
         <activity

@@ -15,8 +15,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 
+import br.com.meu_controle.PerfilActivity;
 import br.com.meu_controle.R;
 import br.com.meu_controle.dados.local.BancoDados;
+import br.com.meu_controle.dados.local.SessaoUsuario;
 import br.com.meu_controle.dados.modelo.Conta;
 import br.com.meu_controle.dados.modelo.TipoConta;
 import br.com.meu_controle.dados.repositorio.RepositorioContas;
@@ -40,6 +42,7 @@ public class ListaContas extends AppCompatActivity {
     private TextView quantidadeResumo;
     private MaterialButton botaoNovaConta;
     private boolean exibindoReceitas;
+    private SessaoUsuario sessao;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,6 +56,9 @@ public class ListaContas extends AppCompatActivity {
             return;
         }
         exibindoReceitas = TipoConta.RECEBER.equals(tipoConta);
+        sessao = new SessaoUsuario(this);
+
+        atualizarEspacoAtivo();
 
         repositorio = new RepositorioContas(
                 BancoDados.obterInstancia(getApplicationContext()).contaDao());
@@ -79,14 +85,27 @@ public class ListaContas extends AppCompatActivity {
         botaoDespesas.setSelected(!exibindoReceitas);
         botaoReceitas.setOnClickListener(view -> abrirContas(TipoConta.RECEBER));
         botaoDespesas.setOnClickListener(view -> abrirContas(TipoConta.PAGAR));
+        findViewById(R.id.nav_profile).setOnClickListener(view ->
+                startActivity(new Intent(this, PerfilActivity.class)));
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         if (repositorio != null) {
+            atualizarEspacoAtivo();
             carregarContas();
         }
+    }
+
+    private void atualizarEspacoAtivo() {
+        TextView nomeEspaco = findViewById(R.id.active_space_name);
+        TextView detalheEspaco = findViewById(R.id.active_space_detail);
+        nomeEspaco.setText(sessao.perfilFamiliar()
+                ? R.string.active_space_family : R.string.active_space_individual);
+        detalheEspaco.setText(sessao.perfilFamiliar()
+                ? getString(R.string.active_space_members, sessao.obterMembros().size() + 1)
+                : getString(R.string.active_space_private));
     }
 
     private void abrirNovaConta() {
@@ -131,7 +150,8 @@ public class ListaContas extends AppCompatActivity {
     }
 
     private void carregarContas() {
-        repositorio.buscarPorTipo(tipoConta, new RetornoRepositorio<List<Conta>>() {
+        repositorio.buscarPorTipo(tipoConta, sessao.obterEmail(), sessao.perfilFamiliar(),
+                new RetornoRepositorio<List<Conta>>() {
             @Override
             public void onSuccess(List<Conta> contas) {
                 listaContas.removeAllViews();
@@ -168,10 +188,15 @@ public class ListaContas extends AppCompatActivity {
 
         descricao.setText(conta.description);
         valor.setText(FormatoFinanceiro.formatAmount(conta.amountInCents));
-        metadata.setText(getString(
+        String metadataConta = getString(
                 R.string.account_metadata,
                 conta.category,
-                FormatoFinanceiro.formatStoredDate(conta.dueDate)));
+                FormatoFinanceiro.formatStoredDate(conta.dueDate));
+        if (sessao.perfilFamiliar() && conta.responsibleName != null) {
+            metadataConta = getString(R.string.account_metadata_responsible,
+                    metadataConta, conta.responsibleName);
+        }
+        metadata.setText(metadataConta);
         valor.setTextColor(getColor(exibindoReceitas
                 ? R.color.receivables_accent_dark
                 : R.color.payables_accent_dark));

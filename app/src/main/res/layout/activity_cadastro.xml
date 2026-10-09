@@ -145,6 +145,40 @@
             android:textColorHint="@color/text_hint"
             android:textSize="16sp" />
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="22dp"
+            android:text="@string/profile_type_label"
+            android:textColor="@color/text_label"
+            android:textSize="14sp" />
+
+        <RadioGroup
+            android:id="@+id/profile_type_group"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="vertical">
+
+            <RadioButton
+                android:id="@+id/profile_individual"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:text="@string/profile_individual_option"
+                android:textColor="@color/text_primary" />
+
+            <RadioButton
+                android:id="@+id/profile_family"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:text="@string/profile_family_option"
+                android:textColor="@color/text_primary" />
+        </RadioGroup>
+
         <!-- Botão Criar conta -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnCriarConta"

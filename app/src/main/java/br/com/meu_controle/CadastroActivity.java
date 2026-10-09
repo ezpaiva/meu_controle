@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.util.Patterns;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.RadioGroup;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -13,6 +14,9 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.google.android.material.button.MaterialButton;
 
+import br.com.meu_controle.dados.local.SessaoUsuario;
+import br.com.meu_controle.dados.modelo.TipoPerfil;
+
 public class CadastroActivity extends AppCompatActivity {
 
     private static final int TAMANHO_MINIMO_SENHA = 6;
@@ -21,6 +25,7 @@ public class CadastroActivity extends AppCompatActivity {
     private EditText editEmail;
     private EditText editSenha;
     private EditText editConfirmarSenha;
+    private RadioGroup grupoTipoPerfil;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,6 +44,7 @@ public class CadastroActivity extends AppCompatActivity {
         editEmail = findViewById(R.id.editEmail);
         editSenha = findViewById(R.id.editSenha);
         editConfirmarSenha = findViewById(R.id.editConfirmarSenha);
+        grupoTipoPerfil = findViewById(R.id.profile_type_group);
         MaterialButton btnCriarConta = findViewById(R.id.btnCriarConta);
 
         // "← Voltar" e "Já tenho uma conta" retornam para o Login
@@ -83,7 +89,14 @@ public class CadastroActivity extends AppCompatActivity {
             return;
         }
 
-        // TODO: salvar o usuário no banco local (Room). Nunca guarde a senha em texto puro.
+        int perfilSelecionado = grupoTipoPerfil.getCheckedRadioButtonId();
+        if (perfilSelecionado == -1) {
+            Toast.makeText(this, R.string.error_profile_type, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String tipoPerfil = perfilSelecionado == R.id.profile_family
+                ? TipoPerfil.FAMILIAR : TipoPerfil.INDIVIDUAL;
+        new SessaoUsuario(this).salvarPerfil(nome, email, tipoPerfil);
         Toast.makeText(this, R.string.msg_conta_criada, Toast.LENGTH_SHORT).show();
         finish(); // volta para o Login
     }

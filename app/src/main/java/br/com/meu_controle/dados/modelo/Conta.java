@@ -16,14 +16,19 @@ public class Conta {
     public String category;
     public String type;
     public String status;
+    public String ownerEmail;
+    public String responsibleName;
 
     public Conta(String description, long amountInCents, String dueDate,
-                 String category, String type, String status) {
+                 String category, String type, String status,
+                 String ownerEmail, String responsibleName) {
         this.description = description;
         this.amountInCents = amountInCents;
         this.dueDate = dueDate;
         this.category = category;
         this.type = type;
         this.status = status;
+        this.ownerEmail = ownerEmail;
+        this.responsibleName = responsibleName;
     }
 }
