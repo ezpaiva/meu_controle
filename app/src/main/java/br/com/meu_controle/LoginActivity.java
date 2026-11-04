@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.util.Patterns;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
@@ -12,18 +13,31 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.google.android.material.button.MaterialButton;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
 
-import br.com.meu_controle.R;
 import br.com.meu_controle.dados.local.SessaoUsuario;
+import br.com.meu_controle.dados.modelo.TipoPerfil;
+import br.com.meu_controle.utilitarios.ErrosAutenticacao;
 
 public class LoginActivity extends AppCompatActivity {
 
     private EditText editEmail;
     private EditText editSenha;
+    private MaterialButton btnEntrar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Login automático: sessão do Firebase ativa e perfil já salvo no aparelho
+        if (FirebaseAuth.getInstance().getCurrentUser() != null
+                && !new SessaoUsuario(this).obterEmail().isEmpty()) {
+            abrirTelaInicial();
+            return;
+        }
+
         setContentView(R.layout.activity_login);
 
         // Respeita a barra de status / navegação (edge-to-edge)
@@ -36,7 +50,7 @@ public class LoginActivity extends AppCompatActivity {
 
         editEmail = findViewById(R.id.editEmail);
         editSenha = findViewById(R.id.editSenha);
-        MaterialButton btnEntrar = findViewById(R.id.btnEntrar);
+        btnEntrar = findViewById(R.id.btnEntrar);
         View linkCriarConta = findViewById(R.id.linkCriarConta);
 
         btnEntrar.setOnClickListener(v -> tentarLogin());
@@ -64,10 +78,44 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        // A autenticação remota será conectada posteriormente; o perfil local já
-        // permite manter o isolamento e a experiência offline do protótipo.
-        new SessaoUsuario(this).garantirPerfil(email);
-        abrirTelaInicial();
+        btnEntrar.setEnabled(false);
+
+        FirebaseAuth.getInstance()
+                .signInWithEmailAndPassword(email, senha)
+                .addOnCompleteListener(task -> {
+                    if (!task.isSuccessful() || task.getResult().getUser() == null) {
+                        btnEntrar.setEnabled(true);
+                        Toast.makeText(this,
+                                ErrosAutenticacao.traduzir(task.getException(), false),
+                                Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    carregarPerfilEEntrar(task.getResult().getUser(), email);
+                });
+    }
+
+    // Recupera nome e tipo de perfil do Firestore para o aparelho atual
+    private void carregarPerfilEEntrar(FirebaseUser usuario, String email) {
+        FirebaseFirestore.getInstance()
+                .collection("usuarios")
+                .document(usuario.getUid())
+                .get()
+                .addOnCompleteListener(task -> {
+                    String nome = usuario.getDisplayName() != null
+                            ? usuario.getDisplayName() : "Você";
+                    String tipo = TipoPerfil.INDIVIDUAL;
+
+                    if (task.isSuccessful() && task.getResult() != null
+                            && task.getResult().exists()) {
+                        String nomeRemoto = task.getResult().getString("nome");
+                        String tipoRemoto = task.getResult().getString("tipoPerfil");
+                        if (nomeRemoto != null) nome = nomeRemoto;
+                        if (tipoRemoto != null) tipo = tipoRemoto;
+                    }
+
+                    new SessaoUsuario(this).salvarPerfil(nome, email, tipo);
+                    abrirTelaInicial();
+                });
     }
 
     private void abrirTelaInicial() {

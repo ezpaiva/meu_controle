@@ -1,156 +1,134 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/rootView"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/screen_background"
-    android:fillViewport="true"
-    tools:context=".CadastroActivity">
+    android:background="@color/white"
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingStart="24dp"
-        android:paddingEnd="24dp"
-        android:paddingTop="24dp"
-        android:paddingBottom="24dp">
+        android:padding="24dp">
 
-        <!-- Voltar -->
         <TextView
             android:id="@+id/btnVoltar"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
-            android:padding="4dp"
-            android:text="@string/voltar"
-            android:textColor="@color/primary_green"
-            android:textSize="15sp"
-            android:textStyle="bold" />
+            android:paddingVertical="8dp"
+            android:text="@string/btn_voltar"
+            android:textColor="@color/green_primary"
+            android:textSize="16sp" />
 
-        <!-- Título -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="16dp"
             android:text="@string/cadastro_title"
-            android:textColor="@color/text_primary"
-            android:textSize="28sp"
+            android:textColor="@color/black"
+            android:textSize="32sp"
             android:textStyle="bold" />
 
-        <!-- Subtítulo -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="8dp"
             android:text="@string/cadastro_subtitle"
-            android:textColor="@color/text_secondary"
-            android:textSize="15sp" />
+            android:textColor="@color/gray_text"
+            android:textSize="16sp" />
 
-        <!-- Label Nome completo -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="28dp"
+            android:layout_marginTop="24dp"
             android:text="@string/label_nome"
-            android:textColor="@color/text_label"
+            android:textColor="@color/black"
             android:textSize="14sp" />
-
-        <!-- Campo Nome completo -->
         <EditText
             android:id="@+id/editNome"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
             android:layout_marginTop="8dp"
-            android:autofillHints="name"
             android:background="@drawable/bg_input_field"
             android:hint="@string/hint_nome"
-            android:inputType="textPersonName|textCapWords"
-            android:maxLines="1"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_hint"
-            android:textSize="16sp" />
+            android:inputType="textPersonName"
+            android:paddingHorizontal="16dp"
+            android:textColor="@color/black"
+            android:textColorHint="@color/gray_text" />
 
-        <!-- Label E-mail -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="16dp"
             android:text="@string/label_email"
-            android:textColor="@color/text_label"
+            android:textColor="@color/black"
             android:textSize="14sp" />
-
-        <!-- Campo E-mail -->
         <EditText
             android:id="@+id/editEmail"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
             android:layout_marginTop="8dp"
-            android:autofillHints="emailAddress"
             android:background="@drawable/bg_input_field"
             android:hint="@string/hint_email"
             android:inputType="textEmailAddress"
-            android:maxLines="1"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_hint"
-            android:textSize="16sp" />
+            android:paddingHorizontal="16dp"
+            android:textColor="@color/black"
+            android:textColorHint="@color/gray_text" />
 
-        <!-- Label Senha -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="16dp"
             android:text="@string/label_senha"
-            android:textColor="@color/text_label"
+            android:textColor="@color/black"
             android:textSize="14sp" />
-
-        <!-- Campo Senha -->
         <EditText
             android:id="@+id/editSenha"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
             android:layout_marginTop="8dp"
-            android:autofillHints="newPassword"
             android:background="@drawable/bg_input_field"
+            android:hint="••••••••"
             android:inputType="textPassword"
-            android:maxLines="1"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_hint"
-            android:textSize="16sp" />
+            android:paddingHorizontal="16dp"
+            android:textColor="@color/black"
+            android:textColorHint="@color/gray_text" />
 
-        <!-- Label Confirmar senha -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="@string/label_confirmar_senha"
-            android:textColor="@color/text_label"
-            android:textSize="14sp" />
+            android:layout_marginTop="4dp"
+            android:text="@string/helper_senha"
+            android:textColor="@color/gray_text"
+            android:textSize="12sp" />
 
-        <!-- Campo Confirmar senha -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/label_confirmar_senha"
+            android:textColor="@color/black"
+            android:textSize="14sp" />
         <EditText
             android:id="@+id/editConfirmarSenha"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
             android:layout_marginTop="8dp"
-            android:autofillHints="newPassword"
             android:background="@drawable/bg_input_field"
+            android:hint="••••••••"
             android:inputType="textPassword"
-            android:maxLines="1"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_hint"
-            android:textSize="16sp" />
+            android:paddingHorizontal="16dp"
+            android:textColor="@color/black"
+            android:textColorHint="@color/gray_text" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="22dp"
-            android:text="@string/profile_type_label"
-            android:textColor="@color/text_label"
+            android:layout_marginTop="24dp"
+            android:text="@string/label_tipo_perfil"
+            android:textColor="@color/black"
             android:textSize="14sp" />
 
         <RadioGroup
@@ -164,47 +142,54 @@
                 android:id="@+id/profile_individual"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp"
-                android:text="@string/profile_individual_option"
-                android:textColor="@color/text_primary" />
+                android:background="@drawable/bg_radio_card"
+                android:button="@null"
+                android:drawableEnd="?android:attr/listChoiceIndicatorSingle"
+                android:padding="16dp"
+                android:text="@string/perfil_individual_title"
+                android:textColor="@color/black"
+                android:textSize="16sp" />
+
+            <!-- Nota: Para manter o subtítulo exato do protótipo num RadioButton puro,
+                 usamos uma string com formatação HTML (se suportado) ou apenas o título.
+                 O visual do cartão segue o layout. -->
 
             <RadioButton
                 android:id="@+id/profile_family"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp"
-                android:text="@string/profile_family_option"
-                android:textColor="@color/text_primary" />
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_radio_card"
+                android:button="@null"
+                android:drawableEnd="?android:attr/listChoiceIndicatorSingle"
+                android:padding="16dp"
+                android:text="@string/perfil_familiar_title"
+                android:textColor="@color/black"
+                android:textSize="16sp" />
         </RadioGroup>
 
-        <!-- Botão Criar conta -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnCriarConta"
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            android:layout_marginTop="28dp"
+            android:layout_marginTop="32dp"
+            android:backgroundTint="@color/green_primary"
             android:text="@string/btn_criar_conta"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
             android:textSize="16sp"
-            android:textStyle="bold" />
+            app:cornerRadius="8dp" />
 
-        <!-- Rodapé: Já tenho uma conta -->
         <TextView
             android:id="@+id/linkJaTenhoConta"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
-            android:layout_marginTop="20dp"
-            android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
-            android:padding="4dp"
-            android:text="@string/cadastro_footer_link"
-            android:textColor="@color/primary_green"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            android:layout_marginTop="16dp"
+            android:padding="8dp"
+            android:text="Já tenho uma conta"
+            android:textColor="@color/gray_text"
+            android:textSize="14sp" />
 
     </LinearLayout>
-
 </ScrollView>

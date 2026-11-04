@@ -5,27 +5,32 @@ import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.Button;
+import android.widget.ArrayAdapter;
 import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 
+import java.util.List;
+
+import br.com.meu_controle.CalendarioActivity;
+import br.com.meu_controle.MainActivity;
 import br.com.meu_controle.PerfilActivity;
 import br.com.meu_controle.R;
 import br.com.meu_controle.dados.local.BancoDados;
 import br.com.meu_controle.dados.local.SessaoUsuario;
 import br.com.meu_controle.dados.modelo.Conta;
 import br.com.meu_controle.dados.modelo.TipoConta;
+import br.com.meu_controle.dados.remoto.SincronizadorContas; // NOVO
 import br.com.meu_controle.dados.repositorio.RepositorioContas;
 import br.com.meu_controle.dados.repositorio.RetornoRepositorio;
 import br.com.meu_controle.utilitarios.FormatoFinanceiro;
-
-import java.util.List;
 
 public class ListaContas extends AppCompatActivity {
 
@@ -35,12 +40,10 @@ public class ListaContas extends AppCompatActivity {
     private RepositorioContas repositorio;
     private LinearLayout listaContas;
     private TextView mensagemVazia;
-    private View cartaoListaVazia;
     private MaterialCardView cartaoResumo;
-    private TextView rotuloResumo;
-    private TextView valorResumo;
-    private TextView quantidadeResumo;
+    private TextView rotuloResumo, valorResumo, quantidadeResumo;
     private MaterialButton botaoNovaConta;
+    private View filtroContainer;
     private boolean exibindoReceitas;
     private SessaoUsuario sessao;
 
@@ -51,7 +54,6 @@ public class ListaContas extends AppCompatActivity {
 
         tipoConta = getIntent().getStringExtra(EXTRA_TIPO_CONTA);
         if (!TipoConta.RECEBER.equals(tipoConta) && !TipoConta.PAGAR.equals(tipoConta)) {
-            Toast.makeText(this, R.string.load_error, Toast.LENGTH_LONG).show();
             finish();
             return;
         }
@@ -59,34 +61,27 @@ public class ListaContas extends AppCompatActivity {
         sessao = new SessaoUsuario(this);
 
         atualizarEspacoAtivo();
+        configurarNavegacaoInferior();
 
-        repositorio = new RepositorioContas(
-                BancoDados.obterInstancia(getApplicationContext()).contaDao());
+        repositorio = new RepositorioContas(BancoDados.obterInstancia(getApplicationContext()).contaDao());
+
         listaContas = findViewById(R.id.accounts_container);
         mensagemVazia = findViewById(R.id.empty_accounts_message);
-        cartaoListaVazia = findViewById(R.id.empty_accounts_card);
         cartaoResumo = findViewById(R.id.accounts_summary_card);
         rotuloResumo = findViewById(R.id.accounts_summary_label);
         valorResumo = findViewById(R.id.accounts_summary_amount);
         quantidadeResumo = findViewById(R.id.accounts_summary_count);
+        filtroContainer = findViewById(R.id.filter_container);
 
         TextView titulo = findViewById(R.id.accounts_title);
-        titulo.setText(exibindoReceitas
-                ? R.string.accounts_title_receivable
-                : R.string.accounts_title_payable);
+        titulo.setText(exibindoReceitas ? "Receitas" : "Despesas");
 
         botaoNovaConta = findViewById(R.id.new_account_button);
-        configurarResumoEAcao();
-        botaoNovaConta.setOnClickListener(view -> abrirNovaConta());
 
-        Button botaoReceitas = findViewById(R.id.nav_receivables);
-        Button botaoDespesas = findViewById(R.id.nav_payables);
-        botaoReceitas.setSelected(exibindoReceitas);
-        botaoDespesas.setSelected(!exibindoReceitas);
-        botaoReceitas.setOnClickListener(view -> abrirContas(TipoConta.RECEBER));
-        botaoDespesas.setOnClickListener(view -> abrirContas(TipoConta.PAGAR));
-        findViewById(R.id.nav_profile).setOnClickListener(view ->
-                startActivity(new Intent(this, PerfilActivity.class)));
+        configurarResumoEAcao();
+        configurarFiltros();
+
+        botaoNovaConta.setOnClickListener(view -> abrirNovaConta());
     }
 
     @Override
@@ -95,17 +90,53 @@ public class ListaContas extends AppCompatActivity {
         if (repositorio != null) {
             atualizarEspacoAtivo();
             carregarContas();
+
+            // NOVO: baixa/envia alterações e recarrega a lista se deu certo
+            SincronizadorContas.sincronizar((sucesso, mensagem) -> {
+                if (sucesso && !isFinishing() && !isDestroyed()) {
+                    carregarContas();
+                }
+            });
+        }
+    }
+
+    private void configurarResumoEAcao() {
+        int corAcento = getColor(exibindoReceitas ? R.color.green_primary : R.color.payables_accent);
+
+        cartaoResumo.setCardBackgroundColor(corAcento);
+        rotuloResumo.setText(exibindoReceitas ? "Total de receitas" : "Total de despesas");
+        botaoNovaConta.setText(exibindoReceitas ? "+ Adicionar receita" : "+ Adicionar despesa");
+
+        if (exibindoReceitas) {
+            // Botão Preenchido (Receitas)
+            botaoNovaConta.setBackgroundTintList(ColorStateList.valueOf(corAcento));
+            botaoNovaConta.setTextColor(getColor(R.color.white));
+        } else {
+            // Botão Vazado (Despesas)
+            botaoNovaConta.setBackgroundTintList(ColorStateList.valueOf(getColor(R.color.white)));
+            botaoNovaConta.setTextColor(corAcento);
+            botaoNovaConta.setStrokeColor(ColorStateList.valueOf(corAcento));
+            botaoNovaConta.setStrokeWidth(2);
+        }
+    }
+
+    private void configurarFiltros() {
+        if (exibindoReceitas) {
+            filtroContainer.setVisibility(View.GONE);
+        } else {
+            filtroContainer.setVisibility(View.VISIBLE);
+            Spinner spinner = findViewById(R.id.category_spinner);
+            String[] categorias = {"Todas categorias", "Alimentação", "Transporte", "Moradia", "Saúde", "Lazer", "Educação", "Outros"};
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, categorias);
+            spinner.setAdapter(adapter);
         }
     }
 
     private void atualizarEspacoAtivo() {
         TextView nomeEspaco = findViewById(R.id.active_space_name);
         TextView detalheEspaco = findViewById(R.id.active_space_detail);
-        nomeEspaco.setText(sessao.perfilFamiliar()
-                ? R.string.active_space_family : R.string.active_space_individual);
-        detalheEspaco.setText(sessao.perfilFamiliar()
-                ? getString(R.string.active_space_members, sessao.obterMembros().size() + 1)
-                : getString(R.string.active_space_private));
+        nomeEspaco.setText(sessao.perfilFamiliar() ? "Família Silva" : "Meu espaço individual");
+        detalheEspaco.setText(sessao.perfilFamiliar() ? (sessao.obterMembros().size() + 1) + " membros" : "Privado");
     }
 
     private void abrirNovaConta() {
@@ -114,57 +145,18 @@ public class ListaContas extends AppCompatActivity {
         startActivity(intent);
     }
 
-    private void configurarResumoEAcao() {
-        int corAcento = getColor(exibindoReceitas
-                ? R.color.receivables_accent
-                : R.color.payables_accent);
-        cartaoResumo.setCardBackgroundColor(corAcento);
-        rotuloResumo.setText(exibindoReceitas
-                ? R.string.total_receivables
-                : R.string.total_payables);
-        botaoNovaConta.setText(exibindoReceitas
-                ? R.string.new_receivable
-                : R.string.new_payable);
-        if (exibindoReceitas) {
-            botaoNovaConta.setBackgroundTintList(ColorStateList.valueOf(corAcento));
-            botaoNovaConta.setTextColor(getColor(R.color.white));
-            botaoNovaConta.setStrokeWidth(0);
-        } else {
-            botaoNovaConta.setBackgroundTintList(
-                    ColorStateList.valueOf(getColor(R.color.surface)));
-            botaoNovaConta.setTextColor(corAcento);
-            botaoNovaConta.setStrokeColor(ColorStateList.valueOf(corAcento));
-            botaoNovaConta.setStrokeWidth(Math.round(
-                    1 * getResources().getDisplayMetrics().density));
-        }
-    }
-
-    private void abrirContas(String tipo) {
-        if (tipo.equals(tipoConta)) {
-            return;
-        }
-        Intent intent = new Intent(this, ListaContas.class);
-        intent.putExtra(EXTRA_TIPO_CONTA, tipo);
-        startActivity(intent);
-        finish();
-    }
-
     private void carregarContas() {
-        repositorio.buscarPorTipo(tipoConta, sessao.obterEmail(), sessao.perfilFamiliar(),
-                new RetornoRepositorio<List<Conta>>() {
+        repositorio.buscarPorTipo(tipoConta, sessao.obterEmail(), sessao.perfilFamiliar(), new RetornoRepositorio<List<Conta>>() {
             @Override
             public void onSuccess(List<Conta> contas) {
                 listaContas.removeAllViews();
-                boolean listaVazia = contas.isEmpty();
-                cartaoListaVazia.setVisibility(listaVazia ? View.VISIBLE : View.GONE);
-                mensagemVazia.setVisibility(listaVazia ? View.VISIBLE : View.GONE);
+                mensagemVazia.setVisibility(contas.isEmpty() ? View.VISIBLE : View.GONE);
                 long totalCentavos = 0;
-                for (Conta conta : contas) {
-                    totalCentavos += conta.amountInCents;
-                }
+                for (Conta conta : contas) totalCentavos += conta.amountInCents;
+
                 valorResumo.setText(FormatoFinanceiro.formatAmount(totalCentavos));
-                quantidadeResumo.setText(getResources().getQuantityString(
-                        R.plurals.account_record_count, contas.size(), contas.size()));
+                quantidadeResumo.setText(contas.size() + " registros");
+
                 LayoutInflater inflater = LayoutInflater.from(ListaContas.this);
                 for (Conta conta : contas) {
                     View linha = inflater.inflate(R.layout.item_account, listaContas, false);
@@ -172,7 +164,6 @@ public class ListaContas extends AppCompatActivity {
                     listaContas.addView(linha);
                 }
             }
-
             @Override
             public void onError(Exception erro) {
                 Toast.makeText(ListaContas.this, R.string.load_error, Toast.LENGTH_LONG).show();
@@ -184,34 +175,78 @@ public class ListaContas extends AppCompatActivity {
         TextView descricao = linha.findViewById(R.id.account_description);
         TextView valor = linha.findViewById(R.id.account_amount);
         TextView metadata = linha.findViewById(R.id.account_metadata);
-        TextView situacao = linha.findViewById(R.id.account_status);
+        TextView btnEditar = linha.findViewById(R.id.btn_edit_item);
+        TextView btnExcluir = linha.findViewById(R.id.btn_delete_item);
 
         descricao.setText(conta.description);
-        valor.setText(FormatoFinanceiro.formatAmount(conta.amountInCents));
-        String metadataConta = getString(
-                R.string.account_metadata,
-                conta.category,
-                FormatoFinanceiro.formatStoredDate(conta.dueDate));
-        if (sessao.perfilFamiliar() && conta.responsibleName != null) {
-            metadataConta = getString(R.string.account_metadata_responsible,
-                    metadataConta, conta.responsibleName);
+
+        // Receitas mostram valor verde positivo, Despesas mostram valor vermelho negativo
+        if (exibindoReceitas) {
+            valor.setText(FormatoFinanceiro.formatAmount(conta.amountInCents));
+            valor.setTextColor(getColor(R.color.green_primary));
+        } else {
+            valor.setText("-" + FormatoFinanceiro.formatAmount(conta.amountInCents));
+            valor.setTextColor(getColor(R.color.payables_accent));
         }
-        metadata.setText(metadataConta);
-        valor.setTextColor(getColor(exibindoReceitas
-                ? R.color.receivables_accent_dark
-                : R.color.payables_accent_dark));
-        boolean concluida = TipoConta.CONCLUIDA.equals(conta.status);
-        int textoSituacao = concluida
-                ? (TipoConta.RECEBER.equals(tipoConta)
-                    ? R.string.status_completed_receivable
-                    : R.string.status_completed_payable)
-                : R.string.status_pending;
-        situacao.setText(getString(R.string.status_label, getString(textoSituacao)));
-        situacao.setBackgroundResource(concluida
-                ? R.drawable.bg_status_completed
-                : R.drawable.bg_status_pending);
-        situacao.setTextColor(getColor(concluida
-                ? R.color.status_completed_text
-                : R.color.status_pending_text));
+
+        String metaTexto = conta.category + " • " + FormatoFinanceiro.formatStoredDate(conta.dueDate);
+        if (sessao.perfilFamiliar() && conta.responsibleName != null) {
+            metaTexto += " • " + conta.responsibleName;
+        }
+        metadata.setText(metaTexto);
+
+        btnEditar.setOnClickListener(v -> {
+            Intent intent = new Intent(ListaContas.this, NovaConta.class);
+            intent.putExtra(EXTRA_TIPO_CONTA, tipoConta);
+            intent.putExtra("CONTA_EDITAR", conta);
+            startActivity(intent);
+        });
+
+        btnExcluir.setOnClickListener(v -> {
+            new AlertDialog.Builder(ListaContas.this)
+                    .setTitle("Excluir")
+                    .setMessage("Deseja excluir '" + conta.description + "'?")
+                    .setPositiveButton("Sim", (dialog, which) -> {
+                        repositorio.excluir(conta.id, new RetornoRepositorio<Void>() {
+                            @Override
+                            public void onSuccess(Void result) {
+                                carregarContas();
+                                Toast.makeText(ListaContas.this, "Excluído", Toast.LENGTH_SHORT).show();
+                            }
+                            @Override
+                            public void onError(Exception error) {
+                                Toast.makeText(ListaContas.this, "Erro ao excluir", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    })
+                    .setNegativeButton("Não", null)
+                    .show();
+        });
+    }
+
+    private void configurarNavegacaoInferior() {
+        findViewById(R.id.nav_dashboard).setOnClickListener(v -> {
+            startActivity(new Intent(this, MainActivity.class)); finish();
+        });
+        findViewById(R.id.nav_receitas).setOnClickListener(v -> abrirContas(TipoConta.RECEBER));
+        findViewById(R.id.nav_despesas).setOnClickListener(v -> abrirContas(TipoConta.PAGAR));
+        findViewById(R.id.nav_calendario).setOnClickListener(v -> {
+            startActivity(new Intent(this, CalendarioActivity.class)); finish();
+        });
+        findViewById(R.id.nav_perfil).setOnClickListener(v -> {
+            startActivity(new Intent(this, PerfilActivity.class)); finish();
+        });
+
+        TextView navAtivo = findViewById(exibindoReceitas ? R.id.nav_receitas : R.id.nav_despesas);
+        navAtivo.setTextColor(getColor(R.color.green_primary));
+        navAtivo.setTypeface(null, android.graphics.Typeface.BOLD);
+    }
+
+    private void abrirContas(String tipo) {
+        if (tipo.equals(tipoConta)) return;
+        Intent intent = new Intent(this, ListaContas.class);
+        intent.putExtra(EXTRA_TIPO_CONTA, tipo);
+        startActivity(intent);
+        finish();
     }
 }
