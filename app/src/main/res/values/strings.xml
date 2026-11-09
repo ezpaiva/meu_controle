@@ -1,113 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Meu Controle</string>
-    <string name="home_title">Meu Controle</string>
-    <string name="home_subtitle">Organize suas receitas e despesas</string>
+
+    <!-- ========== TELA DE LOGIN ========== -->
     <string name="login_title">Entrar</string>
     <string name="login_subtitle">Acesse sua conta para continuar</string>
     <string name="label_email">E-mail</string>
-    <string name="hint_email">Digite seu e-mail</string>
+    <string name="hint_email">seu@email.com</string>
     <string name="label_senha">Senha</string>
     <string name="btn_entrar">Entrar</string>
-    <string name="login_footer_pergunta">Não tem conta? </string>
-    <string name="login_footer_link">Criar uma conta</string>
-    <string name="voltar">← Voltar</string>
-    <string name="cadastro_title">Criar uma conta</string>
-    <string name="cadastro_subtitle">Preencha os campos abaixo para criar sua conta</string>
+    <string name="link_criar_conta">Não tem conta? <b>Criar uma conta</b></string>
+
+    <!-- ========== TELA DE CADASTRO ========== -->
+    <string name="btn_voltar">&#8592; Voltar</string>
+    <string name="cadastro_title">Criar conta</string>
+    <string name="cadastro_subtitle">Preencha seus dados para começar</string>
     <string name="label_nome">Nome completo</string>
-    <string name="open_receivables">Contas a Receber</string>
     <string name="hint_nome">João Silva</string>
+    <string name="helper_senha">Use no mínimo 6 caracteres.</string>
     <string name="label_confirmar_senha">Confirmar senha</string>
+    <string name="label_tipo_perfil">Tipo de perfil</string>
+    <string name="perfil_individual_title">Perfil Individual</string>
+    <string name="perfil_individual_desc">Somente você acessa e gerencia seus dados.</string>
+    <string name="perfil_familiar_title">Perfil Familiar</string>
+    <string name="perfil_familiar_desc">Movimentações compartilhadas com membros do grupo.</string>
     <string name="btn_criar_conta">Criar conta</string>
-    <string name="cadastro_footer_link">Já tenho uma conta</string>
-    <string name="open_payables">Contas a Pagar</string>
-    <string name="accounts_title_receivable">Receitas</string>
-    <string name="accounts_title_payable">Despesas</string>
-    <string name="accounts_subtitle">Acompanhe seus lançamentos</string>
-    <string name="total_receivables">Total de receitas</string>
-    <string name="total_payables">Total de despesas</string>
-    <string name="new_receivable">+ Adicionar receita</string>
-    <string name="new_payable">+ Adicionar despesa</string>
-    <plurals name="account_record_count">
-        <item quantity="one">%1$d registro</item>
-        <item quantity="other">%1$d registros</item>
-    </plurals>
-    <string name="nav_receivables">Receitas</string>
-    <string name="nav_payables">Despesas</string>
-    <string name="empty_accounts">Nenhuma conta cadastrada.</string>
-    <string name="due_date_label">Vencimento: %1$s</string>
-    <string name="account_metadata">%1$s · %2$s</string>
-    <string name="category_value_label">Categoria: %1$s</string>
-    <string name="status_label">Situação: %1$s</string>
+
+    <!-- ========== TELA DE PERFIL ========== -->
+    <string name="espaco_ativo">ESPAÇO ATIVO</string>
+    <string name="perfil_title">Perfil</string>
+    <string name="tipo_de_perfil">TIPO DE PERFIL</string>
+    <string name="btn_editar_perfil">Editar perfil</string>
+    <string name="grupo_familiar_title">Grupo familiar</string>
+    <string name="btn_convidar">Convidar</string>
+    <string name="notificacoes">Notificações</string>
+    <string name="gerenciar_categorias">Gerenciar categorias</string>
+    <string name="configuracoes">Configurações</string>
+    <string name="ajuda">Ajuda e informações</string>
+    <string name="btn_sair">Sair</string>
+
+    <!-- ========== ERROS E VALIDAÇÕES GERAIS ========== -->
+    <string name="error_nome">Informe o nome</string>
+    <string name="error_email">E-mail inválido</string>
+    <string name="error_senha_curta">Senha muito curta (mín. 6)</string>
+    <string name="error_senhas_diferentes">As senhas não coincidem</string>
+    <string name="error_profile_type">Selecione um tipo de perfil</string>
+    <string name="msg_conta_criada">Conta criada com sucesso!</string>
+    <string name="load_error">Erro ao carregar dados</string>
+
+    <!-- ========== DASHBOARD ========== -->
+    <string name="active_space_members">%1$d membros</string>
+    <string name="active_space_individual">Meu espaço individual</string>
+    <string name="active_space_private">Privado</string>
+
+    <!-- ========== TELA NOVA CONTA (RECEITAS/DESPESAS) ========== -->
+    <string name="save_error">Erro ao salvar</string>
+    <string name="new_account">+ Adicionar</string>
     <string name="new_receivable_title">Nova Receita</string>
     <string name="new_payable_title">Nova Despesa</string>
-    <string name="description_field_label">Descrição</string>
-    <string name="description_hint">Ex.: Salário ou aluguel</string>
-    <string name="receivable_description_hint">Ex.: Salário</string>
-    <string name="payable_description_hint">Ex.: Aluguel</string>
-    <string name="amount_field_label">Valor (R$)</string>
-    <string name="amount_hint">0,00</string>
-    <string name="due_date_hint">Data de vencimento</string>
-    <string name="category_label">Categoria</string>
-    <string name="type_label">Tipo: %1$s</string>
-    <string name="status_field_label">Situação</string>
-    <string name="save_account">Salvar</string>
-    <string name="cancel">Cancelar</string>
-    <string name="type_receivable">Receber</string>
-    <string name="type_payable">Pagar</string>
+    <string name="receivable_description_hint">Descrição da receita</string>
+    <string name="payable_description_hint">Descrição da despesa</string>
+    <string name="validation_description">Informe a descrição</string>
+    <string name="validation_amount">Valor inválido</string>
+    <string name="validation_date">Data inválida (use dd/MM/aaaa)</string>
+
     <string name="status_pending">Pendente</string>
-    <string name="status_completed_receivable">Recebido</string>
-    <string name="status_completed_payable">Pago</string>
-    <string name="validation_description">Informe a descrição.</string>
-    <string name="validation_amount">Informe um valor válido, maior que zero e com até duas casas decimais.</string>
-    <string name="validation_date">Selecione uma data de vencimento válida.</string>
-    <string name="save_error">Não foi possível salvar a conta.</string>
-    <string name="load_error">Não foi possível carregar as contas.</string>
-    <string name="error_email">Informe um e-mail válido.</string>
-    <string name="error_senha_vazia">Informe sua senha.</string>
-    <string name="error_nome">Informe seu nome.</string>
-    <string name="error_senha_curta">A senha deve ter no mínimo 6 caracteres.</string>
-    <string name="error_senhas_diferentes">As senhas não conferem.</string>
-    <string name="msg_conta_criada">Conta criada com sucesso.</string>
-    <string name="nav_profile">Perfil</string>
-    <string name="dashboard_title">Dashboard</string>
-    <string name="dashboard_subtitle">Sua vida financeira, de forma simples.</string>
-    <string name="dashboard_balance_label">Saldo atual</string>
-    <string name="open_profile">Abrir perfil</string>
-    <string name="profile_title">Perfil</string>
-    <string name="profile_type_label">Tipo de perfil</string>
-    <string name="profile_individual">Perfil Individual</string>
-    <string name="profile_family">Perfil Familiar</string>
-    <string name="profile_individual_option">Individual — dados privados somente para você</string>
-    <string name="profile_family_option">Familiar — movimentações compartilhadas com o grupo</string>
-    <string name="profile_individual_description">Suas receitas e despesas ficam privadas.</string>
-    <string name="profile_family_description">As movimentações são compartilhadas com os membros do grupo.</string>
-    <string name="error_profile_type">Selecione um tipo de perfil.</string>
-    <string name="active_space_label">ESPAÇO ATIVO</string>
-    <string name="active_space_individual">Meu espaço individual</string>
-    <string name="active_space_family">Espaço familiar</string>
-    <string name="active_space_private">Privado</string>
-    <string name="active_space_members">%1$d membros</string>
-    <string name="account_metadata_responsible">%1$s · %2$s</string>
-    <string name="family_group_title">Grupo familiar</string>
-    <string name="profile_you">%1$s (você)</string>
-    <string name="invite_email_hint">E-mail do novo membro</string>
-    <string name="invite_button">Enviar convite</string>
-    <string name="invite_own_email">Este e-mail já pertence ao seu perfil.</string>
-    <string name="invite_duplicate">Este membro já faz parte do grupo.</string>
-    <string name="invite_success">Convite enviado com sucesso.</string>
-    <string name="logout">Sair</string>
+    <string name="status_completed_receivable">Recebida</string>
+    <string name="status_completed_payable">Paga</string>
+
+    <!-- ========== ARRAYS DE CATEGORIAS ========== -->
     <string-array name="income_categories">
         <item>Salário</item>
-        <item>Vendas</item>
+        <item>Freelance</item>
         <item>Investimentos</item>
+        <item>Vendas</item>
         <item>Outros</item>
     </string-array>
+
     <string-array name="expense_categories">
         <item>Alimentação</item>
-        <item>Moradia</item>
         <item>Transporte</item>
+        <item>Moradia</item>
         <item>Saúde</item>
         <item>Lazer</item>
+        <item>Educação</item>
         <item>Outros</item>
     </string-array>
 </resources>

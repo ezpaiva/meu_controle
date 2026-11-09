@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "359080185645",
+    "project_id": "meu-controle-820cf",
+    "storage_bucket": "meu-controle-820cf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:359080185645:android:cf6921ae48af3306538da4",
+        "android_client_info": {
+          "package_name": "br.com.meu_controle"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDp9s_GYBjyJk_NMAuSkiczEWpBcYLKxIw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

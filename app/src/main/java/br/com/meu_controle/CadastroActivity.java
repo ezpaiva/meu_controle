@@ -1,5 +1,6 @@
 package br.com.meu_controle;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Patterns;
 import android.view.View;
@@ -13,9 +14,17 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.google.android.material.button.MaterialButton;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.UserProfileChangeRequest;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import br.com.meu_controle.dados.local.SessaoUsuario;
 import br.com.meu_controle.dados.modelo.TipoPerfil;
+import br.com.meu_controle.utilitarios.ErrosAutenticacao;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class CadastroActivity extends AppCompatActivity {
 
@@ -26,6 +35,7 @@ public class CadastroActivity extends AppCompatActivity {
     private EditText editSenha;
     private EditText editConfirmarSenha;
     private RadioGroup grupoTipoPerfil;
+    private MaterialButton btnCriarConta;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,9 +55,8 @@ public class CadastroActivity extends AppCompatActivity {
         editSenha = findViewById(R.id.editSenha);
         editConfirmarSenha = findViewById(R.id.editConfirmarSenha);
         grupoTipoPerfil = findViewById(R.id.profile_type_group);
-        MaterialButton btnCriarConta = findViewById(R.id.btnCriarConta);
+        btnCriarConta = findViewById(R.id.btnCriarConta);
 
-        // "← Voltar" e "Já tenho uma conta" retornam para o Login
         findViewById(R.id.btnVoltar).setOnClickListener(v -> finish());
         findViewById(R.id.linkJaTenhoConta).setOnClickListener(v -> finish());
 
@@ -96,8 +105,60 @@ public class CadastroActivity extends AppCompatActivity {
         }
         String tipoPerfil = perfilSelecionado == R.id.profile_family
                 ? TipoPerfil.FAMILIAR : TipoPerfil.INDIVIDUAL;
-        new SessaoUsuario(this).salvarPerfil(nome, email, tipoPerfil);
-        Toast.makeText(this, R.string.msg_conta_criada, Toast.LENGTH_SHORT).show();
-        finish(); // volta para o Login
+
+        criarContaNoFirebase(nome, email, senha, tipoPerfil);
+    }
+
+    private void criarContaNoFirebase(String nome, String email, String senha, String tipoPerfil) {
+        btnCriarConta.setEnabled(false);
+
+        FirebaseAuth.getInstance()
+                .createUserWithEmailAndPassword(email, senha)
+                .addOnCompleteListener(task -> {
+                    if (!task.isSuccessful() || task.getResult().getUser() == null) {
+                        btnCriarConta.setEnabled(true);
+                        Toast.makeText(this,
+                                ErrosAutenticacao.traduzir(task.getException(), true),
+                                Toast.LENGTH_LONG).show();
+                        return;
+                    }
+
+                    FirebaseUser usuario = task.getResult().getUser();
+                    usuario.updateProfile(new UserProfileChangeRequest.Builder()
+                            .setDisplayName(nome).build());
+                    salvarPerfilRemoto(usuario, nome, email, tipoPerfil);
+                });
+    }
+
+    private void salvarPerfilRemoto(FirebaseUser usuario, String nome, String email,
+                                    String tipoPerfil) {
+        Map<String, Object> dados = new HashMap<>();
+        dados.put("nome", nome);
+        dados.put("email", email);
+        dados.put("tipoPerfil", tipoPerfil);
+
+        FirebaseFirestore.getInstance()
+                .collection("usuarios")
+                .document(usuario.getUid())
+                .set(dados)
+                .addOnCompleteListener(task -> {
+                    if (!task.isSuccessful()) {
+                        Toast.makeText(this,
+                                "Conta criada, mas o perfil não foi salvo na nuvem.",
+                                Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(this, R.string.msg_conta_criada,
+                                Toast.LENGTH_SHORT).show();
+                    }
+                    new SessaoUsuario(this).salvarPerfil(nome, email, tipoPerfil);
+                    abrirTelaInicial();
+                });
+    }
+
+    private void abrirTelaInicial() {
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
 }
