@@ -135,6 +135,29 @@
                 android:orientation="vertical" />
 
             <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="8dp"
+                android:text="@string/reminders_title"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:id="@+id/container_lembretes_dia"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <TextView
+                android:id="@+id/msg_sem_lembretes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:text="@string/calendar_no_reminders"
+                android:textAlignment="center"
+                android:textColor="#777777" />
+
+            <TextView
                 android:id="@+id/msg_sem_movimentacoes"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -158,6 +181,14 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:layout_marginBottom="24dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/calendar_open_reminders"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                android:text="@string/calendar_open_reminders"
+                android:textAllCaps="false" />
 
             <!-- Origem dos dados da API -->
             <LinearLayout

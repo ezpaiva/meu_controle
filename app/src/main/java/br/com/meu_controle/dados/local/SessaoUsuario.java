@@ -16,6 +16,7 @@ public class SessaoUsuario {
     private static final String CHAVE_EMAIL = "email";
     private static final String CHAVE_TIPO = "tipo_perfil";
     private static final String CHAVE_MEMBROS = "membros_familiares";
+    private static final String CHAVE_NOTIFICACOES_HABILITADAS = "notificacoes_habilitadas";
 
     private final SharedPreferences preferencias;
 
@@ -53,6 +54,14 @@ public class SessaoUsuario {
         return TipoPerfil.FAMILIAR.equals(obterTipo());
     }
 
+    public boolean isNotificationsEnabled() {
+        return preferencias.getBoolean(CHAVE_NOTIFICACOES_HABILITADAS, true);
+    }
+
+    public void setNotificationsEnabled(boolean habilitadas) {
+        preferencias.edit().putBoolean(CHAVE_NOTIFICACOES_HABILITADAS, habilitadas).apply();
+    }
+
     public List<String> obterMembros() {
         Set<String> membros = preferencias.getStringSet(CHAVE_MEMBROS, new LinkedHashSet<>());
         return new ArrayList<>(membros);
@@ -68,6 +77,9 @@ public class SessaoUsuario {
     }
 
     public void sair() {
-        preferencias.edit().clear().apply();
+        boolean notificacoesHabilitadas = isNotificationsEnabled();
+        preferencias.edit().clear()
+                .putBoolean(CHAVE_NOTIFICACOES_HABILITADAS, notificacoesHabilitadas)
+                .apply();
     }
 }

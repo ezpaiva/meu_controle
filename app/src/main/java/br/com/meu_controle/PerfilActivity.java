@@ -10,15 +10,18 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.firebase.auth.FirebaseAuth;
 
 import br.com.meu_controle.dados.local.SessaoUsuario;
 import br.com.meu_controle.dados.modelo.TipoConta;
+import br.com.meu_controle.dados.repositorio.RepositorioLembretes;
 import br.com.meu_controle.telas.ListaContas;
 
 public class PerfilActivity extends AppCompatActivity {
     private SessaoUsuario sessao;
     private LinearLayout listaMembros;
+    private RepositorioLembretes repositorioLembretes;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,6 +29,7 @@ public class PerfilActivity extends AppCompatActivity {
         setContentView(R.layout.activity_perfil);
 
         sessao = new SessaoUsuario(this);
+        repositorioLembretes = new RepositorioLembretes(getApplicationContext());
 
         // Preenche os dados
         ((TextView) findViewById(R.id.profile_space_name)).setText(sessao.perfilFamiliar() ? "Família" : "Meu espaço individual");
@@ -60,6 +64,16 @@ public class PerfilActivity extends AppCompatActivity {
 
         findViewById(R.id.row_gerenciar_categorias).setOnClickListener(v ->
                 startActivity(new Intent(this, GerenciarCategoriasActivity.class)));
+        SwitchMaterial notificacoes = findViewById(R.id.notifications_switch);
+        notificacoes.setChecked(sessao.isNotificationsEnabled());
+        notificacoes.setOnCheckedChangeListener((button, habilitadas) -> {
+            sessao.setNotificationsEnabled(habilitadas);
+            if (habilitadas) {
+                repositorioLembretes.reagendarPendentes(sessao.obterEmail());
+            } else {
+                repositorioLembretes.cancelarTodos(sessao.obterEmail());
+            }
+        });
 
         configurarNavegacaoInferior();
     }

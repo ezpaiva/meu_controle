@@ -230,6 +230,7 @@
 
             <!-- Notificações -->
             <LinearLayout
+                android:id="@+id/row_notificacoes"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
@@ -240,11 +241,12 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="@string/notificacoes"
+                    android:text="@string/receber_notificacoes"
                     android:textColor="@color/black"
                     android:textSize="16sp" />
 
                 <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/notifications_switch"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:checked="true" />

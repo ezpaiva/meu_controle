@@ -1,6 +1,7 @@
 package br.com.meu_controle.telas;
 
 import android.app.DatePickerDialog;
+import android.app.TimePickerDialog;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.view.View;
@@ -12,8 +13,11 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.switchmaterial.SwitchMaterial;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -26,6 +30,7 @@ import br.com.meu_controle.dados.modelo.Conta;
 import br.com.meu_controle.dados.modelo.TipoConta;
 import br.com.meu_controle.dados.repositorio.RepositorioCategorias;
 import br.com.meu_controle.dados.repositorio.RepositorioContas;
+import br.com.meu_controle.dados.repositorio.RepositorioLembretes;
 import br.com.meu_controle.dados.repositorio.RetornoRepositorio;
 import br.com.meu_controle.utilitarios.FormatoFinanceiro;
 
@@ -41,6 +46,12 @@ public class NovaConta extends AppCompatActivity {
     private com.google.android.material.button.MaterialButton botaoSalvar;
     private com.google.android.material.button.MaterialButton botaoCancelar;
     private TextView btnVoltar;
+    private SwitchMaterial receberLembrete;
+    private com.google.android.material.button.MaterialButton horarioLembrete;
+    private int horaLembrete = 9;
+    private int minutoLembrete;
+    private RepositorioLembretes repositorioLembretes;
+    private boolean carregandoConfiguracaoLembrete;
 
     // Controla edição
     private Conta contaEditando = null;
@@ -61,8 +72,9 @@ public class NovaConta extends AppCompatActivity {
             contaEditando = (Conta) getIntent().getSerializableExtra("CONTA_EDITAR");
         }
 
-        repositorio = new RepositorioContas(
-                BancoDados.obterInstancia(getApplicationContext()).contaDao());
+        BancoDados bancoDados = BancoDados.obterInstancia(getApplicationContext());
+        repositorioLembretes = new RepositorioLembretes(getApplicationContext());
+        repositorio = new RepositorioContas(bancoDados.contaDao(), repositorioLembretes);
 
         // Inicializa componentes
         btnVoltar = findViewById(R.id.btnVoltar);
@@ -70,6 +82,8 @@ public class NovaConta extends AppCompatActivity {
         campoValor = findViewById(R.id.amount_input);
         campoVencimento = findViewById(R.id.due_date_input);
         campoCategoria = findViewById(R.id.category_input);
+        receberLembrete = findViewById(R.id.account_reminder_enabled);
+        horarioLembrete = findViewById(R.id.account_reminder_time);
         botaoSalvar = findViewById(R.id.save_account_button);
         botaoCancelar = findViewById(R.id.cancel_account_button);
         TextView titulo = findViewById(R.id.new_account_title);
@@ -85,6 +99,16 @@ public class NovaConta extends AppCompatActivity {
         }
 
         campoVencimento.setOnClickListener(view -> mostrarSeletorData());
+        horarioLembrete.setOnClickListener(view -> new TimePickerDialog(this,
+                (picker, hora, minuto) -> {
+                    horaLembrete = hora;
+                    minutoLembrete = minuto;
+                    atualizarTextoHorarioLembrete();
+                }, horaLembrete, minutoLembrete, true).show());
+        atualizarTextoHorarioLembrete();
+        if (contaEditando != null) {
+            carregarConfiguracaoLembrete();
+        }
 
         botaoSalvar.setOnClickListener(view -> salvarConta());
         botaoCancelar.setOnClickListener(view -> finish());
@@ -180,6 +204,40 @@ public class NovaConta extends AppCompatActivity {
         // A seleção da categoria é aplicada quando as categorias chegarem do banco
     }
 
+    private void carregarConfiguracaoLembrete() {
+        carregandoConfiguracaoLembrete = true;
+        botaoSalvar.setEnabled(false);
+        repositorioLembretes.buscarPorConta(contaEditando.id,
+                new RetornoRepositorio<br.com.meu_controle.dados.modelo.Lembrete>() {
+                    @Override
+                    public void onSuccess(br.com.meu_controle.dados.modelo.Lembrete lembrete) {
+                        carregandoConfiguracaoLembrete = false;
+                        botaoSalvar.setEnabled(true);
+                        if (lembrete == null) {
+                            return;
+                        }
+                        receberLembrete.setChecked(lembrete.ativo);
+                        LocalTime horario = LocalTime.parse(lembrete.hora);
+                        horaLembrete = horario.getHour();
+                        minutoLembrete = horario.getMinute();
+                        atualizarTextoHorarioLembrete();
+                    }
+
+                    @Override
+                    public void onError(Exception error) {
+                        carregandoConfiguracaoLembrete = false;
+                        botaoSalvar.setEnabled(true);
+                        Toast.makeText(NovaConta.this, R.string.load_error,
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
+    }
+
+    private void atualizarTextoHorarioLembrete() {
+        horarioLembrete.setText(String.format(Locale.getDefault(), "%02d:%02d",
+                horaLembrete, minutoLembrete));
+    }
+
     private void mostrarSeletorData() {
         LocalDate data = LocalDate.parse(dataVencimentoSelecionada);
         DatePickerDialog seletor = new DatePickerDialog(
@@ -198,6 +256,9 @@ public class NovaConta extends AppCompatActivity {
     }
 
     private void salvarConta() {
+        if (carregandoConfiguracaoLembrete) {
+            return;
+        }
         String descricao = campoDescricao.getText().toString().trim();
         if (descricao.isEmpty()) {
             campoDescricao.setError(getString(R.string.validation_description));
@@ -233,7 +294,8 @@ public class NovaConta extends AppCompatActivity {
             contaEditando.category = categoriaSelecionada;
             contaEditando.status = situacao;
 
-            repositorio.atualizar(contaEditando, new RetornoRepositorio<Void>() {
+            repositorio.atualizar(contaEditando, receberLembrete.isChecked(),
+                    horaLembrete, minutoLembrete, new RetornoRepositorio<Void>() {
                 @Override
                 public void onSuccess(Void result) {
                     finish();
@@ -256,7 +318,8 @@ public class NovaConta extends AppCompatActivity {
                     sessao.obterEmail(),
                     sessao.obterNome());
 
-            repositorio.inserir(novaConta, new RetornoRepositorio<Long>() {
+            repositorio.inserir(novaConta, receberLembrete.isChecked(),
+                    horaLembrete, minutoLembrete, new RetornoRepositorio<Long>() {
                 @Override
                 public void onSuccess(Long id) {
                     finish();

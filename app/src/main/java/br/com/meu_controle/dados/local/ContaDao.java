@@ -41,6 +41,9 @@ public interface ContaDao {
     @Query("SELECT * FROM accounts WHERE remoteId = :remoteId LIMIT 1")
     Conta getByRemoteId(String remoteId);
 
+    @Query("SELECT * FROM accounts WHERE id = :id LIMIT 1")
+    Conta getById(long id);
+
     // Remoção física, só para limpar depois que o servidor confirmou a exclusão
     @Query("DELETE FROM accounts WHERE id = :id")
     void deleteById(long id);

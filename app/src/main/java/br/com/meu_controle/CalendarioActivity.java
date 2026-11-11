@@ -31,12 +31,14 @@ import java.util.TreeMap;
 import br.com.meu_controle.dados.local.BancoDados;
 import br.com.meu_controle.dados.local.SessaoUsuario;
 import br.com.meu_controle.dados.modelo.Conta;
+import br.com.meu_controle.dados.modelo.Lembrete;
 import br.com.meu_controle.dados.modelo.TipoConta;
 import br.com.meu_controle.dados.remoto.FeriadosApi;
 import br.com.meu_controle.dados.remoto.SincronizadorContas;
 import br.com.meu_controle.dados.repositorio.RepositorioContas;
 import br.com.meu_controle.dados.repositorio.RetornoRepositorio;
 import br.com.meu_controle.telas.ListaContas;
+import br.com.meu_controle.telas.LembretesActivity;
 import br.com.meu_controle.utilitarios.FormatoFinanceiro;
 
 public class CalendarioActivity extends AppCompatActivity {
@@ -49,6 +51,7 @@ public class CalendarioActivity extends AppCompatActivity {
 
     private SessaoUsuario sessao;
     private RepositorioContas repositorio;
+    private final Map<LocalDate, List<Lembrete>> lembretesPorData = new HashMap<>();
 
     private YearMonth mesAtual = YearMonth.now();
     private LocalDate diaSelecionado = LocalDate.now();
@@ -67,6 +70,8 @@ public class CalendarioActivity extends AppCompatActivity {
     private TextView msgSemMovimentacoes;
     private LinearLayout containerFeriados;
     private TextView statusApi;
+    private LinearLayout containerLembretes;
+    private TextView msgSemLembretes;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,7 +81,6 @@ public class CalendarioActivity extends AppCompatActivity {
         sessao = new SessaoUsuario(this);
         repositorio = new RepositorioContas(
                 BancoDados.obterInstancia(getApplicationContext()).contaDao());
-
         TextView nome = findViewById(R.id.active_space_name_cal);
         TextView detalhe = findViewById(R.id.active_space_detail_cal);
         nome.setText(sessao.perfilFamiliar() ? "Família" : "Meu espaço individual");
@@ -92,9 +96,26 @@ public class CalendarioActivity extends AppCompatActivity {
         msgSemMovimentacoes = findViewById(R.id.msg_sem_movimentacoes);
         containerFeriados = findViewById(R.id.container_feriados_mes);
         statusApi = findViewById(R.id.status_api);
+        containerLembretes = findViewById(R.id.container_lembretes_dia);
+        msgSemLembretes = findViewById(R.id.msg_sem_lembretes);
+
+        BancoDados.obterInstancia(getApplicationContext()).lembreteDao()
+                .observarTodos(sessao.obterEmail()).observe(this, lembretes -> {
+                    lembretesPorData.clear();
+                    if (lembretes != null) {
+                        for (Lembrete lembrete : lembretes) {
+                            LocalDate data = LocalDate.parse(lembrete.data);
+                            lembretesPorData.computeIfAbsent(data, chave -> new ArrayList<>())
+                                    .add(lembrete);
+                        }
+                    }
+                    desenhar();
+                });
 
         findViewById(R.id.btn_mes_anterior).setOnClickListener(v -> mudarMes(-1));
         findViewById(R.id.btn_mes_proximo).setOnClickListener(v -> mudarMes(1));
+        findViewById(R.id.calendar_open_reminders).setOnClickListener(v ->
+                startActivity(new Intent(this, LembretesActivity.class)));
 
         configurarNavegacaoInferior();
         desenhar();
@@ -203,7 +224,8 @@ public class CalendarioActivity extends AppCompatActivity {
     }
 
     private TextView criarCelulaDia(LocalDate data) {
-        boolean temConta = contasPorData.containsKey(data);
+        boolean temConta = contasPorData.containsKey(data)
+                || lembretesPorData.containsKey(data);
         boolean ehFeriado = feriados.containsKey(data);
         boolean selecionado = data.equals(diaSelecionado);
         boolean hoje = data.equals(LocalDate.now());
@@ -260,6 +282,26 @@ public class CalendarioActivity extends AppCompatActivity {
         if (temContas) {
             for (Conta conta : contas) {
                 containerMovimentacoes.addView(criarLinhaConta(conta));
+            }
+        }
+
+        containerLembretes.removeAllViews();
+        List<Lembrete> lembretes = lembretesPorData.get(diaSelecionado);
+        boolean temLembretes = lembretes != null && !lembretes.isEmpty();
+        msgSemLembretes.setVisibility(temLembretes ? View.GONE : View.VISIBLE);
+        if (temLembretes) {
+            for (Lembrete lembrete : lembretes) {
+                TextView linha = new TextView(this);
+                String horario = lembrete.hora;
+                linha.setText(horario + " • " + lembrete.titulo + "\n" + lembrete.mensagem);
+                linha.setPadding(dp(12), dp(12), dp(12), dp(12));
+                linha.setBackgroundResource(R.drawable.bg_card_border);
+                LinearLayout.LayoutParams parametros = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT);
+                parametros.bottomMargin = dp(8);
+                linha.setLayoutParams(parametros);
+                containerLembretes.addView(linha);
             }
         }
 

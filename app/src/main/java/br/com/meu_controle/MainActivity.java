@@ -1,21 +1,29 @@
 package br.com.meu_controle;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Typeface;
+import android.os.Build;
 import android.os.Bundle;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import java.util.List;
 
 import br.com.meu_controle.dados.local.BancoDados;
 import br.com.meu_controle.dados.local.SessaoUsuario;
 import br.com.meu_controle.dados.modelo.Conta;
+import br.com.meu_controle.dados.modelo.Lembrete;
 import br.com.meu_controle.dados.modelo.TipoConta;
 import br.com.meu_controle.dados.remoto.SincronizadorContas; // NOVO
 import br.com.meu_controle.dados.repositorio.RepositorioContas;
+import br.com.meu_controle.dados.repositorio.RepositorioLembretes;
 import br.com.meu_controle.dados.repositorio.RetornoRepositorio;
 import br.com.meu_controle.telas.ListaContas;
 import br.com.meu_controle.utilitarios.FormatoFinanceiro;
@@ -24,10 +32,14 @@ import br.com.meu_controle.utilitarios.PieChartView;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
+import java.util.Date;
+
 public class MainActivity extends AppCompatActivity {
 
     private SessaoUsuario sessao;
     private RepositorioContas repositorio;
+    private RepositorioLembretes repositorioLembretes;
+    private ActivityResultLauncher<String> permissaoNotificacao;
 
     // Views do Dashboard
     private TextView valorReceitas;
@@ -41,6 +53,11 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         sessao = new SessaoUsuario(this);
+        permissaoNotificacao = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(), concedida ->
+                        getSharedPreferences("permissoes", MODE_PRIVATE).edit()
+                                .putBoolean("notificacoes_solicitadas", true).apply());
+        repositorioLembretes = new RepositorioLembretes(getApplicationContext());
         repositorio = new RepositorioContas(
                 BancoDados.obterInstancia(getApplicationContext()).contaDao());
 
@@ -49,6 +66,8 @@ public class MainActivity extends AppCompatActivity {
         valorDespesas = findViewById(R.id.dashboard_expense);
         valorSaldo = findViewById(R.id.dashboard_balance);
         pieChart = findViewById(R.id.dashboard_pie_chart);
+        findViewById(R.id.dashboard_reminders_card).setOnClickListener(view ->
+                startActivity(new Intent(this, br.com.meu_controle.telas.LembretesActivity.class)));
 
         configurarNavegacaoInferior();
     }
@@ -58,6 +77,9 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         atualizarEspacoAtivo();
         carregarResumo();
+        solicitarPermissaoNotificacoes();
+        repositorioLembretes.reagendarPendentes(sessao.obterEmail());
+        carregarResumoLembretes();
 
         // NOVO: baixa/envia alterações e recarrega o resumo se deu certo
         SincronizadorContas.sincronizar((sucesso, mensagem) -> {
@@ -65,6 +87,61 @@ public class MainActivity extends AppCompatActivity {
                 carregarResumo();
             }
         });
+    }
+
+    private void solicitarPermissaoNotificacoes() {
+        if (!sessao.isNotificationsEnabled()) {
+            return;
+        }
+        if (Build.VERSION.SDK_INT < 33
+                || ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                == PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        boolean jaSolicitada = getSharedPreferences("permissoes", MODE_PRIVATE)
+                .getBoolean("notificacoes_solicitadas", false);
+        if (!jaSolicitada) {
+            permissaoNotificacao.launch(Manifest.permission.POST_NOTIFICATIONS);
+        }
+    }
+
+    private void carregarResumoLembretes() {
+        TextView quantidade = findViewById(R.id.dashboard_reminders_count);
+        TextView proximo = findViewById(R.id.dashboard_next_reminder);
+        repositorioLembretes.buscarPendentes(sessao.obterEmail(),
+                new RetornoRepositorio<List<Lembrete>>() {
+                    @Override
+                    public void onSuccess(List<Lembrete> lembretes) {
+                        quantidade.setText(getString(R.string.reminder_dashboard_count,
+                                lembretes.size()));
+                        if (lembretes.isEmpty()) {
+                            proximo.setText(R.string.reminder_dashboard_none);
+                            return;
+                        }
+                        Lembrete lembrete = null;
+                        for (Lembrete pendente : lembretes) {
+                            if (pendente.dataHora >= System.currentTimeMillis()) {
+                                lembrete = pendente;
+                                break;
+                            }
+                        }
+                        if (lembrete == null) {
+                            proximo.setText(R.string.reminder_dashboard_none);
+                            return;
+                        }
+                        String quando = new SimpleDateFormat(
+                                "dd/MM/yyyy 'às' HH:mm", Locale.getDefault())
+                                .format(new Date(lembrete.dataHora));
+                        proximo.setText(getString(R.string.reminder_dashboard_next,
+                                lembrete.titulo, quando));
+                    }
+
+                    @Override
+                    public void onError(Exception error) {
+                        Toast.makeText(MainActivity.this, R.string.load_error,
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
     }
 
     /**

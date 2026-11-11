@@ -29,6 +29,7 @@ import br.com.meu_controle.dados.modelo.Conta;
 import br.com.meu_controle.dados.modelo.TipoConta;
 import br.com.meu_controle.dados.remoto.SincronizadorContas; // NOVO
 import br.com.meu_controle.dados.repositorio.RepositorioContas;
+import br.com.meu_controle.dados.repositorio.RepositorioLembretes;
 import br.com.meu_controle.dados.repositorio.RetornoRepositorio;
 import br.com.meu_controle.utilitarios.FormatoFinanceiro;
 
@@ -63,7 +64,9 @@ public class ListaContas extends AppCompatActivity {
         atualizarEspacoAtivo();
         configurarNavegacaoInferior();
 
-        repositorio = new RepositorioContas(BancoDados.obterInstancia(getApplicationContext()).contaDao());
+        BancoDados bancoDados = BancoDados.obterInstancia(getApplicationContext());
+        repositorio = new RepositorioContas(bancoDados.contaDao(),
+                new RepositorioLembretes(getApplicationContext()));
 
         listaContas = findViewById(R.id.accounts_container);
         mensagemVazia = findViewById(R.id.empty_accounts_message);

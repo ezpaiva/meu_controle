@@ -115,6 +115,30 @@
                 android:textColor="@color/black"
                 android:textSize="16sp" />
 
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/account_reminder_enabled"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:checked="true"
+                android:text="@string/account_reminder_enabled" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/account_reminder_time_label"
+                android:textColor="@color/black"
+                android:textSize="14sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/account_reminder_time"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="8dp"
+                android:textAllCaps="false" />
+
             <!-- Campo Observação (Opcional) -->
             <TextView
                 android:layout_width="wrap_content"
