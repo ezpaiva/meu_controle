@@ -52,6 +52,7 @@ public class LoginActivity extends AppCompatActivity {
         editSenha = findViewById(R.id.editSenha);
         btnEntrar = findViewById(R.id.btnEntrar);
         View linkCriarConta = findViewById(R.id.linkCriarConta);
+        findViewById(R.id.linkEsqueciSenha).setOnClickListener(v -> recuperarSenha());
 
         btnEntrar.setOnClickListener(v -> tentarLogin());
 
@@ -124,4 +125,30 @@ public class LoginActivity extends AppCompatActivity {
         startActivity(intent);
         finish();
     }
+
+    private void recuperarSenha() {
+        String email = editEmail.getText().toString().trim();
+        editEmail.setError(null);
+
+        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            editEmail.setError("Digite seu e-mail para recuperar a senha");
+            editEmail.requestFocus();
+            return;
+        }
+
+        FirebaseAuth.getInstance()
+                .sendPasswordResetEmail(email)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        Toast.makeText(this,
+                                "Se existir uma conta com este e-mail, enviamos um link para redefinir a senha. Verifique também o spam.",
+                                Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(this,
+                                ErrosAutenticacao.traduzir(task.getException(), true),
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
+    }
+
 }

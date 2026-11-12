@@ -152,7 +152,7 @@ public class MainActivity extends AppCompatActivity {
         TextView detalheEspaco = findViewById(R.id.dashboard_space_detail);
 
         if (sessao.perfilFamiliar()) {
-            nomeEspaco.setText("Família Silva");
+            nomeEspaco.setText("Família");
             detalheEspaco.setText(getString(R.string.active_space_members, sessao.obterMembros().size() + 1));
         } else {
             nomeEspaco.setText(R.string.active_space_individual);

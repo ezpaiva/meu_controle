@@ -138,7 +138,7 @@ public class ListaContas extends AppCompatActivity {
     private void atualizarEspacoAtivo() {
         TextView nomeEspaco = findViewById(R.id.active_space_name);
         TextView detalheEspaco = findViewById(R.id.active_space_detail);
-        nomeEspaco.setText(sessao.perfilFamiliar() ? "Família Silva" : "Meu espaço individual");
+        nomeEspaco.setText(sessao.perfilFamiliar() ? "Família" : "Meu espaço individual");
         detalheEspaco.setText(sessao.perfilFamiliar() ? (sessao.obterMembros().size() + 1) + " membros" : "Privado");
     }
 

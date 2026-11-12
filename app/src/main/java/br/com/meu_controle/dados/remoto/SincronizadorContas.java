@@ -23,7 +23,6 @@ import br.com.meu_controle.dados.local.BancoDados;
 import br.com.meu_controle.dados.local.ContaDao;
 import br.com.meu_controle.dados.local.SessaoUsuario;
 import br.com.meu_controle.dados.modelo.Conta;
-import br.com.meu_controle.dados.repositorio.RepositorioLembretes;
 
 import java.util.HashMap;
 import java.util.List;
@@ -68,17 +67,23 @@ public final class SincronizadorContas {
         }
 
         String email = new SessaoUsuario(contexto).obterEmail();
+        if (email.isEmpty()) {
+            avisar(retorno, false, "Sessão sem e-mail.");
+            return;
+        }
 
         EXECUTOR.execute(() -> {
             try {
                 ContaDao dao = BancoDados.obterInstancia(contexto).contaDao();
-                RepositorioLembretes lembretes = new RepositorioLembretes(contexto);
                 CollectionReference colecao = FirebaseFirestore.getInstance()
                         .collection("usuarios")
                         .document(usuario.getUid())
                         .collection("contas");
 
-                baixar(dao, colecao, lembretes);
+                // Contas antigas sem dono passam a ser deste usuário (acontece uma única vez)
+                dao.adotarContasSemDono(email);
+
+                baixar(dao, colecao, email);
                 enviar(dao, colecao, email);
                 avisar(retorno, true, "Sincronizado.");
             } catch (Exception erro) {
@@ -89,8 +94,8 @@ public final class SincronizadorContas {
     }
 
     // ---------- Nuvem -> aparelho ----------
-    private static void baixar(ContaDao dao, CollectionReference colecao,
-                               RepositorioLembretes lembretes) throws Exception {
+    private static void baixar(ContaDao dao, CollectionReference colecao, String email)
+            throws Exception {
         // Source.SERVER evita ler um cache desatualizado
         QuerySnapshot resultado = esperar(colecao.get(Source.SERVER));
 
@@ -104,20 +109,19 @@ public final class SincronizadorContas {
                 Conta nova = new Conta("", 0, "", "", "", "", null, null);
                 nova.remoteId = doc.getId();
                 preencher(nova, doc, remotoAtualizadoEm);
-                nova.id = dao.insert(nova);
-                lembretes.reconciliarConta(nova);
+                nova.ownerEmail = email; // tudo em usuarios/{uid} pertence a este usuário
+                dao.insert(nova);
                 continue;
             }
 
             // Vence a alteração mais recente (RNF04)
             if (remotoAtualizadoEm > local.updatedAt) {
                 if (remotoExcluido) {
-                    lembretes.excluirPorConta(local.id);
                     dao.deleteById(local.id);
                 } else {
                     preencher(local, doc, remotoAtualizadoEm);
+                    local.ownerEmail = email;
                     dao.update(local);
-                    lembretes.reconciliarConta(local);
                 }
             }
         }

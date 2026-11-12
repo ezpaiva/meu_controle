@@ -32,9 +32,7 @@ public class RepositorioContas {
                               RetornoRepositorio<List<Conta>> retorno) {
         executor.execute(() -> {
             try {
-                List<Conta> contas = compartilhar
-                        ? contaDao.getByType(type)
-                        : contaDao.getByTypeAndOwner(type, ownerEmail);
+                List<Conta> contas = contaDao.getByTypeAndOwner(type, ownerEmail);
                 mainHandler.post(() -> retorno.onSuccess(contas));
             } catch (Exception error) {
                 mainHandler.post(() -> retorno.onError(error));
@@ -46,9 +44,7 @@ public class RepositorioContas {
                             RetornoRepositorio<List<Conta>> retorno) {
         executor.execute(() -> {
             try {
-                List<Conta> contas = compartilhar
-                        ? contaDao.getAll()
-                        : contaDao.getAllByOwner(ownerEmail);
+                List<Conta> contas = contaDao.getAllByOwner(ownerEmail);
                 mainHandler.post(() -> retorno.onSuccess(contas));
             } catch (Exception error) {
                 mainHandler.post(() -> retorno.onError(error));

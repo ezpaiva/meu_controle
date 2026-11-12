@@ -5,56 +5,86 @@
     android:orientation="horizontal"
     android:background="#FFFFFF"
     android:elevation="8dp"
-    android:paddingTop="10dp"
-    android:paddingBottom="10dp">
+    android:paddingTop="6dp"
+    android:paddingBottom="6dp">
 
     <TextView
         android:id="@+id/nav_dashboard"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
+        android:autoSizeMaxTextSize="15sp"
+        android:autoSizeMinTextSize="11sp"
+        android:autoSizeStepGranularity="1sp"
+        android:autoSizeTextType="uniform"
         android:gravity="center"
+        android:maxLines="1"
+        android:minHeight="48dp"
+        android:paddingHorizontal="2dp"
         android:text="Início"
-        android:textColor="#666666"
-        android:textSize="12sp" />
+        android:textColor="#666666" />
 
     <TextView
         android:id="@+id/nav_receitas"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
+        android:autoSizeMaxTextSize="15sp"
+        android:autoSizeMinTextSize="11sp"
+        android:autoSizeStepGranularity="1sp"
+        android:autoSizeTextType="uniform"
         android:gravity="center"
+        android:maxLines="1"
+        android:minHeight="48dp"
+        android:paddingHorizontal="2dp"
         android:text="Receitas"
-        android:textColor="#666666"
-        android:textSize="12sp" />
+        android:textColor="#666666" />
 
     <TextView
         android:id="@+id/nav_despesas"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
+        android:autoSizeMaxTextSize="15sp"
+        android:autoSizeMinTextSize="11sp"
+        android:autoSizeStepGranularity="1sp"
+        android:autoSizeTextType="uniform"
         android:gravity="center"
+        android:maxLines="1"
+        android:minHeight="48dp"
+        android:paddingHorizontal="2dp"
         android:text="Despesas"
-        android:textColor="#666666"
-        android:textSize="12sp" />
+        android:textColor="#666666" />
 
     <TextView
         android:id="@+id/nav_calendario"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
+        android:autoSizeMaxTextSize="15sp"
+        android:autoSizeMinTextSize="11sp"
+        android:autoSizeStepGranularity="1sp"
+        android:autoSizeTextType="uniform"
         android:gravity="center"
+        android:maxLines="1"
+        android:minHeight="48dp"
+        android:paddingHorizontal="2dp"
         android:text="Calendário"
-        android:textColor="#666666"
-        android:textSize="12sp" />
+        android:textColor="#666666" />
 
     <TextView
         android:id="@+id/nav_perfil"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
+        android:autoSizeMaxTextSize="15sp"
+        android:autoSizeMinTextSize="11sp"
+        android:autoSizeStepGranularity="1sp"
+        android:autoSizeTextType="uniform"
         android:gravity="center"
+        android:maxLines="1"
+        android:minHeight="48dp"
+        android:paddingHorizontal="2dp"
         android:text="Perfil"
-        android:textColor="#666666"
-        android:textSize="12sp" />
+        android:textColor="#666666" />
 </LinearLayout>

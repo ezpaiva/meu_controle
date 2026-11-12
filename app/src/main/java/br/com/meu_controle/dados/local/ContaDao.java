@@ -12,17 +12,20 @@ import java.util.List;
 @Dao
 public interface ContaDao {
 
-    @Query("SELECT * FROM accounts WHERE type = :type AND deleted = 0 ORDER BY dueDate ASC, id DESC")
-    List<Conta> getByType(String type);
-
-    @Query("SELECT * FROM accounts WHERE type = :type AND (ownerEmail = :ownerEmail OR ownerEmail IS NULL) AND deleted = 0 ORDER BY dueDate ASC, id DESC")
+    @Query("SELECT * FROM accounts WHERE type = :type AND LOWER(ownerEmail) = LOWER(:ownerEmail) AND deleted = 0 ORDER BY dueDate ASC, id DESC")
     List<Conta> getByTypeAndOwner(String type, String ownerEmail);
 
+    @Query("SELECT * FROM accounts WHERE LOWER(ownerEmail) = LOWER(:ownerEmail) AND deleted = 0 ORDER BY dueDate ASC, id DESC")
+    List<Conta> getAllByOwner(String ownerEmail);
+
+    // USO INTERNO (reconciliação de lembretes). Não usar para listar contas nas telas,
+    // porque traz as contas de todos os usuários do aparelho.
     @Query("SELECT * FROM accounts WHERE deleted = 0 ORDER BY dueDate ASC, id DESC")
     List<Conta> getAll();
 
-    @Query("SELECT * FROM accounts WHERE (ownerEmail = :ownerEmail OR ownerEmail IS NULL) AND deleted = 0 ORDER BY dueDate ASC, id DESC")
-    List<Conta> getAllByOwner(String ownerEmail);
+    // Usado pelo NotificationReceiver (ele mesmo confere se a conta foi excluída)
+    @Query("SELECT * FROM accounts WHERE id = :id LIMIT 1")
+    Conta getById(long id);
 
     @Insert
     long insert(Conta conta);
@@ -34,24 +37,24 @@ public interface ContaDao {
     @Query("UPDATE accounts SET deleted = 1, syncPending = 1, updatedAt = :agora WHERE id = :id")
     void marcarExcluida(long id, long agora);
 
-    // --- Usados pela sincronização (Etapa 4) ---
+    // --- Usados pela sincronização ---
     @Query("SELECT * FROM accounts WHERE syncPending = 1")
     List<Conta> getPendentes();
 
     @Query("SELECT * FROM accounts WHERE remoteId = :remoteId LIMIT 1")
     Conta getByRemoteId(String remoteId);
 
-    @Query("SELECT * FROM accounts WHERE id = :id LIMIT 1")
-    Conta getById(long id);
-
     // Remoção física, só para limpar depois que o servidor confirmou a exclusão
     @Query("DELETE FROM accounts WHERE id = :id")
     void deleteById(long id);
 
-    // Só as pendências do usuário logado (ou sem dono), para não misturar contas
-    // de pessoas diferentes que usem o mesmo aparelho
-    @Query("SELECT * FROM accounts WHERE syncPending = 1 AND (ownerEmail = :email OR ownerEmail IS NULL)")
+    // Só as pendências do usuário logado
+    @Query("SELECT * FROM accounts WHERE syncPending = 1 AND LOWER(ownerEmail) = LOWER(:email)")
     List<Conta> getPendentesDoDono(String email);
+
+    // Contas antigas sem dono passam a pertencer a quem sincroniza primeiro (uma única vez)
+    @Query("UPDATE accounts SET ownerEmail = :email, syncPending = 1 WHERE ownerEmail IS NULL")
+    void adotarContasSemDono(String email);
 
     // Só considera sincronizada se a conta não mudou durante o envio
     @Query("UPDATE accounts SET syncPending = 0 WHERE id = :id AND updatedAt = :atualizadoEm")
