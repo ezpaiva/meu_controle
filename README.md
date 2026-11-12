@@ -48,7 +48,7 @@ O aplicativo oferecerá uma forma simples e organizada de registrar, consultar e
 - **XML** — construção das interfaces;
 - **GitHub** — controle de versão, hospedagem do código e colaboração;
 - **Banco de Dados SQLite** — persistência local;
-- **API (a definir)** — comunicação com serviços externos.
+- **API Firebase e API Brasil(Feriados Nacionais)** — comunicação com serviços externos.
 
 > As tecnologias e bibliotecas poderão ser atualizadas durante o desenvolvimento do projeto.
 
