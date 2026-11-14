@@ -45,8 +45,23 @@ public class RepositorioLembretes {
         return lembreteDao.observarTodos(email);
     }
 
+    public LiveData<List<Lembrete>> observarTodos(String email, String groupId) {
+        return lembreteDao.observarPorEscopo(email, groupId);
+    }
+
     public LiveData<List<LembreteComConta>> observarTodosComConta(String email) {
         return lembreteDao.observarTodosComConta(email);
+    }
+
+    public LiveData<List<LembreteComConta>> observarTodosComConta(String email, String groupId) {
+        return lembreteDao.observarComContaPorEscopo(email, groupId);
+    }
+
+    public void sincronizar(RetornoRepositorio<Void> retorno) {
+        br.com.meu_controle.dados.remoto.SincronizadorContas.sincronizar((sucesso, mensagem) -> {
+            if (sucesso) retorno.onSuccess(null);
+            else retorno.onError(new IllegalStateException(mensagem));
+        });
     }
 
     public void buscarPorConta(long contaId, RetornoRepositorio<Lembrete> retorno) {
@@ -62,9 +77,14 @@ public class RepositorioLembretes {
     }
 
     public void buscarPendentes(String email, RetornoRepositorio<List<Lembrete>> retorno) {
+        buscarPendentes(email, null, retorno);
+    }
+
+    public void buscarPendentes(String email, String groupId,
+                                RetornoRepositorio<List<Lembrete>> retorno) {
         EXECUTOR.execute(() -> {
             try {
-                List<Lembrete> pendentes = lembreteDao.listarPendentes(email);
+                List<Lembrete> pendentes = lembreteDao.listarPendentesPorEscopo(email, groupId);
                 mainHandler.post(() -> retorno.onSuccess(pendentes));
             } catch (Exception error) {
                 mainHandler.post(() -> retorno.onError(error));
@@ -78,9 +98,12 @@ public class RepositorioLembretes {
                 if (lembrete.criadoEm <= 0) {
                     lembrete.criadoEm = System.currentTimeMillis();
                 }
+                lembrete.updatedAt = System.currentTimeMillis();
+                lembrete.syncPending = lembrete.groupId != null;
                 long id = lembreteDao.inserir(lembrete);
                 lembrete.id = id;
                 scheduler.scheduleNotification(lembrete);
+                sincronizarGrupoSeNecessario(lembrete);
                 mainHandler.post(() -> retorno.onSuccess(id));
             } catch (Exception error) {
                 mainHandler.post(() -> retorno.onError(error));
@@ -92,8 +115,11 @@ public class RepositorioLembretes {
         EXECUTOR.execute(() -> {
             try {
                 scheduler.cancelNotification(lembrete.id);
+                lembrete.updatedAt = System.currentTimeMillis();
+                lembrete.syncPending = lembrete.groupId != null;
                 lembreteDao.atualizar(lembrete);
                 scheduler.scheduleNotification(lembrete);
+                sincronizarGrupoSeNecessario(lembrete);
                 mainHandler.post(() -> retorno.onSuccess(null));
             } catch (Exception error) {
                 mainHandler.post(() -> retorno.onError(error));
@@ -105,7 +131,14 @@ public class RepositorioLembretes {
         EXECUTOR.execute(() -> {
             try {
                 scheduler.cancelNotification(lembrete.id);
-                lembreteDao.excluir(lembrete);
+                if (lembrete.groupId != null) {
+                    lembreteDao.marcarExcluido(lembrete.id, System.currentTimeMillis());
+                    lembrete.syncPending = true;
+                    lembrete.deleted = true;
+                } else {
+                    lembreteDao.excluir(lembrete);
+                }
+                sincronizarGrupoSeNecessario(lembrete);
                 mainHandler.post(() -> retorno.onSuccess(null));
             } catch (Exception error) {
                 mainHandler.post(() -> retorno.onError(error));
@@ -130,9 +163,12 @@ public class RepositorioLembretes {
         cancelarEExcluirDaConta(conta.id);
         Lembrete lembrete = gerarLembreteConta(context, conta, ativo, hora, minuto);
         if (lembrete != null) {
+            lembrete.updatedAt = System.currentTimeMillis();
+            lembrete.syncPending = lembrete.groupId != null;
             long id = lembreteDao.inserir(lembrete);
             lembrete.id = id;
             scheduler.scheduleNotification(lembrete);
+            sincronizarGrupoSeNecessario(lembrete);
         }
     }
 
@@ -141,9 +177,13 @@ public class RepositorioLembretes {
     }
 
     public void reagendarPendentes(String email) {
+        reagendarPendentes(email, null);
+    }
+
+    public void reagendarPendentes(String email, String groupId) {
         EXECUTOR.execute(() -> {
             try {
-                scheduler.rescheduleAll(email);
+                scheduler.rescheduleAll(email, groupId);
             } catch (Exception error) {
                 Log.e(TAG, "Falha ao reagendar lembretes pendentes.", error);
             }
@@ -151,9 +191,13 @@ public class RepositorioLembretes {
     }
 
     public void cancelarTodos(String email) {
+        cancelarTodos(email, null);
+    }
+
+    public void cancelarTodos(String email, String groupId) {
         EXECUTOR.execute(() -> {
             try {
-                scheduler.cancelAll(email);
+                scheduler.cancelAll(email, groupId);
             } catch (Exception error) {
                 Log.e(TAG, "Falha ao cancelar os alarmes dos lembretes.", error);
             }
@@ -163,8 +207,22 @@ public class RepositorioLembretes {
     private void cancelarEExcluirDaConta(long contaId) {
         for (Lembrete lembrete : lembreteDao.buscarPorConta(contaId)) {
             scheduler.cancelNotification(lembrete.id);
+            if (lembrete.groupId != null) {
+                lembrete.updatedAt = System.currentTimeMillis();
+                lembrete.syncPending = true;
+                lembrete.deleted = true;
+                lembreteDao.marcarExcluido(lembrete.id, lembrete.updatedAt);
+                sincronizarGrupoSeNecessario(lembrete);
+            } else {
+                lembreteDao.deleteById(lembrete.id);
+            }
         }
-        lembreteDao.excluirPorConta(contaId);
+    }
+
+    private void sincronizarGrupoSeNecessario(Lembrete lembrete) {
+        if (lembrete.groupId != null) {
+            br.com.meu_controle.dados.remoto.SincronizadorContas.sincronizar();
+        }
     }
 
     public static Lembrete gerarLembreteConta(Context context, Conta conta, boolean ativo,
@@ -185,9 +243,13 @@ public class RepositorioLembretes {
         String dataFormatada = vencimento.format(DateTimeFormatter.ofPattern("dd/MM/uuuu"));
         String mensagem = context.getString(R.string.reminder_account_due_on,
                 conta.description, dataFormatada);
-        return new Lembrete(context.getString(R.string.reminder_notification_title),
+        Lembrete lembrete = new Lembrete(context.getString(R.string.reminder_notification_title),
                 mensagem, dataHora, ativo && !TipoConta.CONCLUIDA.equals(conta.status),
                 conta.id, System.currentTimeMillis(), false, conta.ownerEmail);
+        lembrete.groupId = conta.groupId;
+        lembrete.createdByName = conta.responsibleName;
+        lembrete.contaRemoteId = conta.remoteId;
+        return lembrete;
     }
 
     public static boolean deveGerarLembretes(Conta conta) {

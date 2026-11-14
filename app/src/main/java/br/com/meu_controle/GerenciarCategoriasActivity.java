@@ -1,7 +1,6 @@
 package br.com.meu_controle;
 
 import android.content.Intent;
-import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,6 +12,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.button.MaterialButtonToggleGroup;
 
@@ -25,6 +25,7 @@ import br.com.meu_controle.dados.modelo.TipoConta;
 import br.com.meu_controle.dados.repositorio.RepositorioCategorias;
 import br.com.meu_controle.dados.repositorio.RetornoRepositorio;
 import br.com.meu_controle.telas.ListaContas;
+import br.com.meu_controle.utilitarios.NavegacaoInferior;
 
 public class GerenciarCategoriasActivity extends AppCompatActivity {
 
@@ -68,7 +69,7 @@ public class GerenciarCategoriasActivity extends AppCompatActivity {
         TextView detalhe = findViewById(R.id.active_space_detail);
         nome.setText(sessao.perfilFamiliar() ? "Família" : "Meu espaço individual");
         detalhe.setText(sessao.perfilFamiliar()
-                ? (sessao.obterMembros().size() + 1) + " membros"
+                ? sessao.obterMembros().size() + " membros"
                 : "Privado");
     }
 
@@ -85,6 +86,7 @@ public class GerenciarCategoriasActivity extends AppCompatActivity {
 
     private void carregarCategorias() {
         repositorio.buscarPorTipo(tipoAtual, sessao.obterEmail(), sessao.perfilFamiliar(),
+                sessao.obterGrupoId(),
                 new RetornoRepositorio<List<Categoria>>() {
                     @Override
                     public void onSuccess(List<Categoria> categorias) {
@@ -164,6 +166,7 @@ public class GerenciarCategoriasActivity extends AppCompatActivity {
                         });
                     } else {
                         Categoria nova = new Categoria(nome, tipoAtual, sessao.obterEmail());
+                        nova.groupId = sessao.perfilFamiliar() ? sessao.obterGrupoId() : null;
                         repositorio.inserir(nova, new RetornoRepositorio<Long>() {
                             @Override public void onSuccess(Long id) {
                                 dialog.dismiss();
@@ -204,28 +207,8 @@ public class GerenciarCategoriasActivity extends AppCompatActivity {
     }
 
     private void configurarNavegacaoInferior() {
-        findViewById(R.id.nav_dashboard).setOnClickListener(v -> {
-            startActivity(new Intent(this, MainActivity.class)); finish();
-        });
-        findViewById(R.id.nav_receitas).setOnClickListener(v -> {
-            Intent i = new Intent(this, ListaContas.class);
-            i.putExtra(ListaContas.EXTRA_TIPO_CONTA, TipoConta.RECEBER);
-            startActivity(i); finish();
-        });
-        findViewById(R.id.nav_despesas).setOnClickListener(v -> {
-            Intent i = new Intent(this, ListaContas.class);
-            i.putExtra(ListaContas.EXTRA_TIPO_CONTA, TipoConta.PAGAR);
-            startActivity(i); finish();
-        });
-        findViewById(R.id.nav_calendario).setOnClickListener(v -> {
-            startActivity(new Intent(this, CalendarioActivity.class)); finish();
-        });
-        findViewById(R.id.nav_perfil).setOnClickListener(v -> {
-            startActivity(new Intent(this, PerfilActivity.class)); finish();
-        });
-
-        TextView navAtivo = findViewById(R.id.nav_perfil);
-        navAtivo.setTextColor(getColor(R.color.receivables_accent_dark));
-        navAtivo.setTypeface(null, Typeface.BOLD);
+        NavegacaoInferior.configurar(this,
+                (BottomNavigationView) findViewById(R.id.bottom_navigation),
+                R.id.nav_perfil, true);
     }
 }

@@ -16,6 +16,8 @@ public class Categoria implements Serializable {
     public String nome;
     public String tipo;          // TipoConta.RECEBER ou TipoConta.PAGAR
     public String ownerEmail;    // NULL para categorias padrão
+    public String groupId;
+    public String remoteId;
 
     @ColumnInfo(defaultValue = "0")
     public boolean isPadrao;

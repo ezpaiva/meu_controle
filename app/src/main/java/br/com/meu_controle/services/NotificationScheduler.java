@@ -93,11 +93,15 @@ public class NotificationScheduler {
     }
 
     public void rescheduleAll(String ownerEmail) {
+        rescheduleAll(ownerEmail, null);
+    }
+
+    public void rescheduleAll(String ownerEmail, String groupId) {
         if (!new SessaoUsuario(context).isNotificationsEnabled()) {
             return;
         }
         List<Lembrete> pendentes = BancoDados.obterInstancia(context)
-                .lembreteDao().listarAtivosPendentes(ownerEmail);
+                .lembreteDao().listarAtivosPendentesPorEscopo(ownerEmail, groupId);
         for (Lembrete lembrete : pendentes) {
             cancelNotification(lembrete.id);
             scheduleNotification(lembrete);
@@ -105,8 +109,12 @@ public class NotificationScheduler {
     }
 
     public void cancelAll(String ownerEmail) {
+        cancelAll(ownerEmail, null);
+    }
+
+    public void cancelAll(String ownerEmail, String groupId) {
         List<Lembrete> lembretes = BancoDados.obterInstancia(context)
-                .lembreteDao().listarTodos(ownerEmail);
+                .lembreteDao().listarTodosPorEscopo(ownerEmail, groupId);
         for (Lembrete lembrete : lembretes) {
             cancelNotification(lembrete.id);
         }

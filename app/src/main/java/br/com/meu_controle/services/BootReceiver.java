@@ -25,8 +25,9 @@ public class BootReceiver extends BroadcastReceiver {
         EXECUTOR.execute(() -> {
             try {
                 String email = new SessaoUsuario(appContext).obterEmail();
+                String groupId = new SessaoUsuario(appContext).obterGrupoId();
                 if (email != null && !email.trim().isEmpty()) {
-                    new NotificationScheduler(appContext).rescheduleAll(email);
+                    new NotificationScheduler(appContext).rescheduleAll(email, groupId);
                 }
             } catch (Exception error) {
                 Log.e(TAG, "Falha ao restaurar os alarmes após reinicialização.", error);

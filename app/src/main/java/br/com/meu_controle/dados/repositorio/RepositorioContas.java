@@ -30,9 +30,15 @@ public class RepositorioContas {
 
     public void buscarPorTipo(String type, String ownerEmail, boolean compartilhar,
                               RetornoRepositorio<List<Conta>> retorno) {
+        buscarPorTipo(type, ownerEmail, compartilhar, null, retorno);
+    }
+
+    public void buscarPorTipo(String type, String ownerEmail, boolean compartilhar,
+                              String groupId, RetornoRepositorio<List<Conta>> retorno) {
         executor.execute(() -> {
             try {
-                List<Conta> contas = contaDao.getByTypeAndOwner(type, ownerEmail);
+                List<Conta> contas = contaDao.getByTypeAndScope(
+                        type, ownerEmail, compartilhar ? groupId : null);
                 mainHandler.post(() -> retorno.onSuccess(contas));
             } catch (Exception error) {
                 mainHandler.post(() -> retorno.onError(error));
@@ -42,12 +48,28 @@ public class RepositorioContas {
 
     public void buscarTodas(String ownerEmail, boolean compartilhar,
                             RetornoRepositorio<List<Conta>> retorno) {
+        buscarTodas(ownerEmail, compartilhar, null, retorno);
+    }
+
+    public void buscarTodas(String ownerEmail, boolean compartilhar, String groupId,
+                            RetornoRepositorio<List<Conta>> retorno) {
         executor.execute(() -> {
             try {
-                List<Conta> contas = contaDao.getAllByOwner(ownerEmail);
+                List<Conta> contas = contaDao.getAllByScope(
+                        ownerEmail, compartilhar ? groupId : null);
                 mainHandler.post(() -> retorno.onSuccess(contas));
             } catch (Exception error) {
                 mainHandler.post(() -> retorno.onError(error));
+            }
+        });
+    }
+
+    public void sincronizar(RetornoRepositorio<Void> retorno) {
+        SincronizadorContas.sincronizar((sucesso, mensagem) -> {
+            if (sucesso) {
+                retorno.onSuccess(null);
+            } else {
+                retorno.onError(new IllegalStateException(mensagem));
             }
         });
     }

@@ -26,8 +26,21 @@ public class LembreteViewModel extends AndroidViewModel {
         return repositorio.observarTodos(email);
     }
 
+    public LiveData<List<Lembrete>> observarLembretes(String email, String groupId) {
+        return repositorio.observarTodos(email, groupId);
+    }
+
     public LiveData<List<LembreteComConta>> observarLembretesComConta(String email) {
         return repositorio.observarTodosComConta(email);
+    }
+
+    public LiveData<List<LembreteComConta>> observarLembretesComConta(
+            String email, String groupId) {
+        return repositorio.observarTodosComConta(email, groupId);
+    }
+
+    public void sincronizar(RetornoRepositorio<Void> retorno) {
+        repositorio.sincronizar(retorno);
     }
 
     public void inserir(Lembrete lembrete, RetornoRepositorio<Long> retorno) {

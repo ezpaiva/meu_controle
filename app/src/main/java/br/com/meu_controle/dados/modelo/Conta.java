@@ -22,6 +22,7 @@ public class Conta implements Serializable {
     public String status;
     public String ownerEmail;
     public String responsibleName;
+    public String groupId;
 
     // --- Campos de sincronização ---
     public String remoteId;

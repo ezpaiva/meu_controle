@@ -22,11 +22,15 @@ public class RepositorioCategorias {
 
     public void buscarPorTipo(String tipo, String ownerEmail, boolean compartilhar,
                               RetornoRepositorio<List<Categoria>> retorno) {
+        buscarPorTipo(tipo, ownerEmail, compartilhar, null, retorno);
+    }
+
+    public void buscarPorTipo(String tipo, String ownerEmail, boolean compartilhar,
+                              String groupId, RetornoRepositorio<List<Categoria>> retorno) {
         executor.execute(() -> {
             try {
-                List<Categoria> categorias = compartilhar
-                        ? categoriaDao.getByTipo(tipo)
-                        : categoriaDao.getByTipoAndOwner(tipo, ownerEmail);
+                List<Categoria> categorias = categoriaDao.getByTipoAndScope(
+                        tipo, ownerEmail, compartilhar ? groupId : null);
                 mainHandler.post(() -> retorno.onSuccess(categorias));
             } catch (Exception e) {
                 mainHandler.post(() -> retorno.onError(e));
@@ -38,7 +42,8 @@ public class RepositorioCategorias {
         executor.execute(() -> {
             try {
                 int duplicatas = categoriaDao.contarPorNomeETipo(
-                        categoria.tipo, categoria.nome, -1);
+                        categoria.tipo, categoria.nome, -1,
+                        categoria.groupId, categoria.ownerEmail);
                 if (duplicatas > 0) {
                     mainHandler.post(() -> retorno.onError(
                             new IllegalStateException("Já existe uma categoria com esse nome.")));
@@ -48,6 +53,7 @@ public class RepositorioCategorias {
                 categoria.syncPending = true;
                 categoria.deleted = false;
                 long id = categoriaDao.insert(categoria);
+                sincronizarGrupoSeNecessario(categoria.groupId);
                 mainHandler.post(() -> retorno.onSuccess(id));
             } catch (Exception e) {
                 mainHandler.post(() -> retorno.onError(e));
@@ -70,7 +76,8 @@ public class RepositorioCategorias {
                     return;
                 }
                 int duplicatas = categoriaDao.contarPorNomeETipo(
-                        categoria.tipo, categoria.nome, categoria.id);
+                        categoria.tipo, categoria.nome, categoria.id,
+                        categoria.groupId, categoria.ownerEmail);
                 if (duplicatas > 0) {
                     mainHandler.post(() -> retorno.onError(
                             new IllegalStateException("Já existe uma categoria com esse nome.")));
@@ -80,6 +87,7 @@ public class RepositorioCategorias {
                 categoria.updatedAt = agora;
                 categoria.syncPending = true;
                 categoriaDao.atualizarComPropagacao(categoria, original.nome, agora);
+                sincronizarGrupoSeNecessario(categoria.groupId);
                 mainHandler.post(() -> retorno.onSuccess(null));
             } catch (Exception e) {
                 mainHandler.post(() -> retorno.onError(e));
@@ -96,7 +104,7 @@ public class RepositorioCategorias {
                     return;
                 }
                 int usos = categoriaDao.contarContasUsandoCategoria(
-                        categoria.nome, categoria.tipo);
+                        categoria.nome, categoria.tipo, categoria.groupId, categoria.ownerEmail);
                 if (usos > 0) {
                     mainHandler.post(() -> retorno.onError(
                             new IllegalStateException("Existem " + usos
@@ -104,10 +112,17 @@ public class RepositorioCategorias {
                     return;
                 }
                 categoriaDao.marcarExcluida(categoria.id, System.currentTimeMillis());
+                sincronizarGrupoSeNecessario(categoria.groupId);
                 mainHandler.post(() -> retorno.onSuccess(null));
             } catch (Exception e) {
                 mainHandler.post(() -> retorno.onError(e));
             }
         });
+    }
+
+    private void sincronizarGrupoSeNecessario(String groupId) {
+        if (groupId != null) {
+            br.com.meu_controle.dados.remoto.SincronizadorContas.sincronizar();
+        }
     }
 }

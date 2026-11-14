@@ -20,6 +20,10 @@
         <activity
             android:name=".PerfilActivity"
             android:exported="false" />
+        <activity
+            android:name=".EditarPerfilActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
         <!-- NOVO: tela de categorias (faltava registrar) -->
         <activity
             android:name=".GerenciarCategoriasActivity"

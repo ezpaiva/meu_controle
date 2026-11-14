@@ -12,19 +12,17 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.UserProfileChangeRequest;
-import com.google.firebase.firestore.FirebaseFirestore;
 
-import br.com.meu_controle.dados.local.SessaoUsuario;
 import br.com.meu_controle.dados.modelo.TipoPerfil;
+import br.com.meu_controle.dados.repositorio.PerfilUsuarioRepository;
 import br.com.meu_controle.utilitarios.ErrosAutenticacao;
-
-import java.util.HashMap;
-import java.util.Map;
+import br.com.meu_controle.viewmodels.PerfilUsuarioViewModel;
 
 public class CadastroActivity extends AppCompatActivity {
 
@@ -36,10 +34,12 @@ public class CadastroActivity extends AppCompatActivity {
     private EditText editConfirmarSenha;
     private RadioGroup grupoTipoPerfil;
     private MaterialButton btnCriarConta;
+    private PerfilUsuarioViewModel perfilViewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        perfilViewModel = new ViewModelProvider(this).get(PerfilUsuarioViewModel.class);
         setContentView(R.layout.activity_cadastro);
 
         // Respeita a barra de status / navegação (edge-to-edge)
@@ -112,6 +112,12 @@ public class CadastroActivity extends AppCompatActivity {
     private void criarContaNoFirebase(String nome, String email, String senha, String tipoPerfil) {
         btnCriarConta.setEnabled(false);
 
+        FirebaseUser sessaoExistente = FirebaseAuth.getInstance().getCurrentUser();
+        if (sessaoExistente != null && email.equalsIgnoreCase(sessaoExistente.getEmail())) {
+            salvarPerfilRemoto(sessaoExistente, nome, email, tipoPerfil);
+            return;
+        }
+
         FirebaseAuth.getInstance()
                 .createUserWithEmailAndPassword(email, senha)
                 .addOnCompleteListener(task -> {
@@ -132,26 +138,22 @@ public class CadastroActivity extends AppCompatActivity {
 
     private void salvarPerfilRemoto(FirebaseUser usuario, String nome, String email,
                                     String tipoPerfil) {
-        Map<String, Object> dados = new HashMap<>();
-        dados.put("nome", nome);
-        dados.put("email", email);
-        dados.put("tipoPerfil", tipoPerfil);
-
-        FirebaseFirestore.getInstance()
-                .collection("usuarios")
-                .document(usuario.getUid())
-                .set(dados)
-                .addOnCompleteListener(task -> {
-                    if (!task.isSuccessful()) {
-                        Toast.makeText(this,
-                                "Conta criada, mas o perfil não foi salvo na nuvem.",
-                                Toast.LENGTH_LONG).show();
-                    } else {
-                        Toast.makeText(this, R.string.msg_conta_criada,
+        perfilViewModel.salvar(usuario.getUid(), nome, email, tipoPerfil,
+                new PerfilUsuarioRepository.RetornoPerfil() {
+                    @Override
+                    public void onSuccess(br.com.meu_controle.dados.modelo.Usuario resultado) {
+                        Toast.makeText(CadastroActivity.this, R.string.msg_conta_criada,
                                 Toast.LENGTH_SHORT).show();
+                        abrirTelaInicial();
                     }
-                    new SessaoUsuario(this).salvarPerfil(nome, email, tipoPerfil);
-                    abrirTelaInicial();
+
+                    @Override
+                    public void onError(Exception error) {
+                        btnCriarConta.setEnabled(true);
+                        Toast.makeText(CadastroActivity.this,
+                                "Conta criada, mas o perfil não foi salvo na nuvem. Tente novamente.",
+                                Toast.LENGTH_LONG).show();
+                    }
                 });
     }
 

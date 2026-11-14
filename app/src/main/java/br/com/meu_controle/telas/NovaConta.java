@@ -12,6 +12,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AlertDialog;
 
 import com.google.android.material.switchmaterial.SwitchMaterial;
 
@@ -31,6 +32,7 @@ import br.com.meu_controle.dados.modelo.TipoConta;
 import br.com.meu_controle.dados.repositorio.RepositorioCategorias;
 import br.com.meu_controle.dados.repositorio.RepositorioContas;
 import br.com.meu_controle.dados.repositorio.RepositorioLembretes;
+import br.com.meu_controle.dados.repositorio.GrupoFamiliarRepository;
 import br.com.meu_controle.dados.repositorio.RetornoRepositorio;
 import br.com.meu_controle.utilitarios.FormatoFinanceiro;
 
@@ -146,6 +148,7 @@ public class NovaConta extends AppCompatActivity {
         SessaoUsuario sessao = new SessaoUsuario(this);
 
         repoCategorias.buscarPorTipo(tipoConta, sessao.obterEmail(), sessao.perfilFamiliar(),
+                sessao.obterGrupoId(),
                 new RetornoRepositorio<List<Categoria>>() {
                     @Override
                     public void onSuccess(List<Categoria> categorias) {
@@ -285,8 +288,78 @@ public class NovaConta extends AppCompatActivity {
         // Como o protótipo não tem status, definimos como Pendente por padrão para novos, ou mantemos o que estava na edição
         String situacao = (contaEditando != null) ? contaEditando.status : TipoConta.PENDENTE;
 
+        if (contaEditando == null) {
+            SessaoUsuario sessao = new SessaoUsuario(this);
+            if (sessao.perfilFamiliar()
+                    && (sessao.obterGrupoId() == null || sessao.obterGrupoId().trim().isEmpty())) {
+                Conta primeiraConta = new Conta(descricao, valorEmCentavos, vencimento,
+                        categoriaSelecionada, tipoConta, situacao,
+                        sessao.obterEmail(), sessao.obterNome());
+                solicitarNomeGrupoEProsseguir(descricao, valorEmCentavos, vencimento,
+                        categoriaSelecionada, situacao, primeiraConta);
+                return;
+            }
+        }
         botaoSalvar.setEnabled(false);
+        persistirConta(descricao, valorEmCentavos, vencimento, categoriaSelecionada, situacao, null);
+    }
 
+    private void solicitarNomeGrupoEProsseguir(String descricao, long valorEmCentavos,
+                                               String vencimento, String categoria,
+                                               String situacao, Conta primeiraConta) {
+        EditText nomeGrupo = new EditText(this);
+        nomeGrupo.setSingleLine(true);
+        nomeGrupo.setHint(R.string.family_group_name_hint);
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.grupo_familiar_title)
+                .setMessage(R.string.family_first_account_group_hint)
+                .setView(nomeGrupo)
+                .setPositiveButton(android.R.string.ok, null)
+                .setNegativeButton(android.R.string.cancel, (d, which) ->
+                        botaoSalvar.setEnabled(true))
+                .create();
+        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                .setOnClickListener(v -> {
+                    String nome = nomeGrupo.getText().toString().trim();
+                    if (nome.isEmpty()) {
+                        nomeGrupo.setError(getString(R.string.family_group_name_required));
+                        return;
+                    }
+                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
+                    botaoSalvar.setEnabled(false);
+                    new GrupoFamiliarRepository(getApplicationContext()).criarGrupo(nome,
+                            primeiraConta,
+                            new GrupoFamiliarRepository.RetornoGrupo() {
+                                @Override
+                                public void onSuccess(
+                                        br.com.meu_controle.dados.modelo.GrupoFamiliar grupo,
+                                        List<br.com.meu_controle.dados.modelo.Usuario> membros) {
+                                    dialog.dismiss();
+                                    persistirConta(descricao, valorEmCentavos, vencimento,
+                                            categoria, situacao, primeiraConta);
+                                }
+
+                                @Override
+                                public void onError(Exception error) {
+                                    dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                                            .setEnabled(true);
+                                    botaoSalvar.setEnabled(true);
+                                    Toast.makeText(NovaConta.this,
+                                            error.getMessage() == null
+                                                    ? getString(R.string.save_error)
+                                                    : error.getMessage(),
+                                            Toast.LENGTH_LONG).show();
+                                }
+                            });
+                }));
+        dialog.setOnCancelListener(ignored -> botaoSalvar.setEnabled(true));
+        dialog.show();
+    }
+
+    private void persistirConta(String descricao, long valorEmCentavos,
+                                String vencimento, String categoriaSelecionada,
+                                String situacao, Conta contaPrecriada) {
+        botaoSalvar.setEnabled(false);
         if (contaEditando != null) {
             contaEditando.description = descricao;
             contaEditando.amountInCents = valorEmCentavos;
@@ -308,15 +381,11 @@ public class NovaConta extends AppCompatActivity {
             });
         } else {
             SessaoUsuario sessao = new SessaoUsuario(this);
-            Conta novaConta = new Conta(
-                    descricao,
-                    valorEmCentavos,
-                    vencimento,
-                    categoriaSelecionada,
-                    tipoConta,
-                    situacao,
-                    sessao.obterEmail(),
-                    sessao.obterNome());
+            Conta novaConta = contaPrecriada == null
+                    ? new Conta(descricao, valorEmCentavos, vencimento, categoriaSelecionada,
+                    tipoConta, situacao, sessao.obterEmail(), sessao.obterNome())
+                    : contaPrecriada;
+            novaConta.groupId = sessao.perfilFamiliar() ? sessao.obterGrupoId() : null;
 
             repositorio.inserir(novaConta, receberLembrete.isChecked(),
                     horaLembrete, minutoLembrete, new RetornoRepositorio<Long>() {

@@ -14,6 +14,9 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+import androidx.lifecycle.ViewModelProvider;
+
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -34,12 +37,14 @@ import br.com.meu_controle.dados.modelo.Conta;
 import br.com.meu_controle.dados.modelo.Lembrete;
 import br.com.meu_controle.dados.modelo.TipoConta;
 import br.com.meu_controle.dados.remoto.FeriadosApi;
-import br.com.meu_controle.dados.remoto.SincronizadorContas;
 import br.com.meu_controle.dados.repositorio.RepositorioContas;
 import br.com.meu_controle.dados.repositorio.RetornoRepositorio;
 import br.com.meu_controle.telas.ListaContas;
 import br.com.meu_controle.telas.LembretesActivity;
 import br.com.meu_controle.utilitarios.FormatoFinanceiro;
+import br.com.meu_controle.utilitarios.NavegacaoInferior;
+import br.com.meu_controle.viewmodels.LembreteViewModel;
+import br.com.meu_controle.viewmodels.SincronizacaoViewModel;
 
 public class CalendarioActivity extends AppCompatActivity {
 
@@ -51,6 +56,8 @@ public class CalendarioActivity extends AppCompatActivity {
 
     private SessaoUsuario sessao;
     private RepositorioContas repositorio;
+    private LembreteViewModel lembreteViewModel;
+    private SincronizacaoViewModel sincronizacaoViewModel;
     private final Map<LocalDate, List<Lembrete>> lembretesPorData = new HashMap<>();
 
     private YearMonth mesAtual = YearMonth.now();
@@ -81,11 +88,16 @@ public class CalendarioActivity extends AppCompatActivity {
         sessao = new SessaoUsuario(this);
         repositorio = new RepositorioContas(
                 BancoDados.obterInstancia(getApplicationContext()).contaDao());
+        sincronizacaoViewModel = new ViewModelProvider(this)
+                .get(SincronizacaoViewModel.class);
+        lembreteViewModel = new ViewModelProvider(this).get(LembreteViewModel.class);
         TextView nome = findViewById(R.id.active_space_name_cal);
         TextView detalhe = findViewById(R.id.active_space_detail_cal);
-        nome.setText(sessao.perfilFamiliar() ? "Família" : "Meu espaço individual");
+        nome.setText(sessao.perfilFamiliar()
+                ? (sessao.obterGrupoNome().isEmpty() ? "Família" : sessao.obterGrupoNome())
+                : "Meu espaço individual");
         detalhe.setText(sessao.perfilFamiliar()
-                ? (sessao.obterMembros().size() + 1) + " membros" : "Privado");
+                ? sessao.obterMembros().size() + " membros" : "Privado");
 
         tituloMes = findViewById(R.id.titulo_mes);
         grade = findViewById(R.id.grade_calendario);
@@ -99,8 +111,8 @@ public class CalendarioActivity extends AppCompatActivity {
         containerLembretes = findViewById(R.id.container_lembretes_dia);
         msgSemLembretes = findViewById(R.id.msg_sem_lembretes);
 
-        BancoDados.obterInstancia(getApplicationContext()).lembreteDao()
-                .observarTodos(sessao.obterEmail()).observe(this, lembretes -> {
+        lembreteViewModel.observarLembretes(
+                sessao.obterEmail(), sessao.obterGrupoId()).observe(this, lembretes -> {
                     lembretesPorData.clear();
                     if (lembretes != null) {
                         for (Lembrete lembrete : lembretes) {
@@ -127,16 +139,15 @@ public class CalendarioActivity extends AppCompatActivity {
         super.onResume();
         carregarContas();
 
-        SincronizadorContas.sincronizar((sucesso, mensagem) -> {
-            if (sucesso && !isFinishing() && !isDestroyed()) {
-                carregarContas();
-            }
+        sincronizacaoViewModel.sincronizar(new RetornoRepositorio<Void>() {
+            @Override public void onSuccess(Void ignored) { carregarContas(); }
+            @Override public void onError(Exception error) { carregarContas(); }
         });
     }
 
     // ---------- Dados ----------
     private void carregarContas() {
-        repositorio.buscarTodas(sessao.obterEmail(), sessao.perfilFamiliar(),
+        repositorio.buscarTodas(sessao.obterEmail(), sessao.perfilFamiliar(), sessao.obterGrupoId(),
                 new RetornoRepositorio<List<Conta>>() {
                     @Override
                     public void onSuccess(List<Conta> contas) {
@@ -293,7 +304,12 @@ public class CalendarioActivity extends AppCompatActivity {
             for (Lembrete lembrete : lembretes) {
                 TextView linha = new TextView(this);
                 String horario = lembrete.hora;
-                linha.setText(horario + " • " + lembrete.titulo + "\n" + lembrete.mensagem);
+                String responsavel = sessao.perfilFamiliar()
+                        ? "\n" + getString(R.string.calendar_responsible,
+                        lembrete.createdByName == null ? lembrete.ownerEmail
+                                : lembrete.createdByName) : "";
+                linha.setText(horario + " • " + lembrete.titulo + "\n"
+                        + lembrete.mensagem + responsavel);
                 linha.setPadding(dp(12), dp(12), dp(12), dp(12));
                 linha.setBackgroundResource(R.drawable.bg_card_border);
                 LinearLayout.LayoutParams parametros = new LinearLayout.LayoutParams(
@@ -324,8 +340,11 @@ public class CalendarioActivity extends AppCompatActivity {
         linha.setLayoutParams(params);
 
         TextView descricao = new TextView(this);
+        String responsavel = sessao.perfilFamiliar()
+                ? "\n" + getString(R.string.calendar_responsible,
+                conta.responsibleName == null ? conta.ownerEmail : conta.responsibleName) : "";
         descricao.setText(conta.description + "\n" + (receita ? "Receita" : "Despesa")
-                + " • " + conta.category);
+                + " • " + conta.category + responsavel);
         descricao.setLayoutParams(new LinearLayout.LayoutParams(0,
                 LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
@@ -405,20 +424,9 @@ public class CalendarioActivity extends AppCompatActivity {
 
     // ---------- Navegação inferior (igual à versão anterior) ----------
     private void configurarNavegacaoInferior() {
-        findViewById(R.id.nav_dashboard).setOnClickListener(v -> {
-            startActivity(new Intent(this, MainActivity.class));
-            finish();
-        });
-        findViewById(R.id.nav_receitas).setOnClickListener(v -> abrirLista(TipoConta.RECEBER));
-        findViewById(R.id.nav_despesas).setOnClickListener(v -> abrirLista(TipoConta.PAGAR));
-        findViewById(R.id.nav_perfil).setOnClickListener(v -> {
-            startActivity(new Intent(this, PerfilActivity.class));
-            finish();
-        });
-
-        TextView navAtivo = findViewById(R.id.nav_calendario);
-        navAtivo.setTextColor(getColor(R.color.receivables_accent_dark));
-        navAtivo.setTypeface(null, Typeface.BOLD);
+        NavegacaoInferior.configurar(this,
+                (BottomNavigationView) findViewById(R.id.bottom_navigation),
+                R.id.nav_calendario);
     }
 
     private void abrirLista(String tipo) {

@@ -13,7 +13,7 @@ import br.com.meu_controle.dados.modelo.Categoria;
 import br.com.meu_controle.dados.modelo.Conta;
 import br.com.meu_controle.dados.modelo.Lembrete;
 
-@Database(entities = {Conta.class, Categoria.class, Lembrete.class}, version = 7, exportSchema = false)
+@Database(entities = {Conta.class, Categoria.class, Lembrete.class}, version = 8, exportSchema = false)
 public abstract class BancoDados extends RoomDatabase {
 
     private static volatile BancoDados instance;
@@ -154,6 +154,22 @@ public abstract class BancoDados extends RoomDatabase {
         }
     };
 
+    private static final Migration MIGRACAO_7_8 = new Migration(7, 8) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("ALTER TABLE accounts ADD COLUMN groupId TEXT");
+            database.execSQL("ALTER TABLE categorias ADD COLUMN groupId TEXT");
+            database.execSQL("ALTER TABLE categorias ADD COLUMN remoteId TEXT");
+            database.execSQL("ALTER TABLE reminders ADD COLUMN groupId TEXT");
+            database.execSQL("ALTER TABLE reminders ADD COLUMN createdByName TEXT");
+            database.execSQL("ALTER TABLE reminders ADD COLUMN remoteId TEXT");
+            database.execSQL("ALTER TABLE reminders ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0");
+            database.execSQL("ALTER TABLE reminders ADD COLUMN syncPending INTEGER NOT NULL DEFAULT 0");
+            database.execSQL("ALTER TABLE reminders ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0");
+            database.execSQL("ALTER TABLE reminders ADD COLUMN contaRemoteId TEXT");
+        }
+    };
+
     private static void semearCategoriasPadrao(SupportSQLiteDatabase db) {
         String[] despesas = {"Alimentação", "Transporte", "Moradia", "Saúde",
                 "Lazer", "Educação", "Outros"};
@@ -187,7 +203,7 @@ public abstract class BancoDados extends RoomDatabase {
                                     BancoDados.class,
                                     "meu_controle.db")
                             .addMigrations(MIGRACAO_1_2, MIGRACAO_2_3, MIGRACAO_3_4,
-                                    MIGRACAO_4_5, MIGRACAO_5_6, MIGRACAO_6_7)
+                                    MIGRACAO_4_5, MIGRACAO_5_6, MIGRACAO_6_7, MIGRACAO_7_8)
                             .addCallback(new RoomDatabase.Callback() {
                                 @Override
                                 public void onCreate(@NonNull SupportSQLiteDatabase db) {

@@ -3,38 +3,49 @@ package br.com.meu_controle;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Patterns;
+import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.FirebaseFirestore;
 
 import br.com.meu_controle.dados.local.SessaoUsuario;
-import br.com.meu_controle.dados.modelo.TipoPerfil;
+import br.com.meu_controle.dados.modelo.ConviteFamiliar;
+import br.com.meu_controle.dados.modelo.GrupoFamiliar;
+import br.com.meu_controle.dados.modelo.Usuario;
+import br.com.meu_controle.dados.remoto.SincronizadorContas;
+import br.com.meu_controle.dados.repositorio.GrupoFamiliarRepository;
+import br.com.meu_controle.dados.repositorio.PerfilUsuarioRepository;
 import br.com.meu_controle.utilitarios.ErrosAutenticacao;
+import br.com.meu_controle.viewmodels.PerfilUsuarioViewModel;
 
 public class LoginActivity extends AppCompatActivity {
 
+    private static final String TAG = "LoginActivity";
     private EditText editEmail;
     private EditText editSenha;
     private MaterialButton btnEntrar;
+    private PerfilUsuarioViewModel perfilViewModel;
+    private boolean verificandoConvites;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        perfilViewModel = new ViewModelProvider(this).get(PerfilUsuarioViewModel.class);
 
-        // Login automático: sessão do Firebase ativa e perfil já salvo no aparelho
-        if (FirebaseAuth.getInstance().getCurrentUser() != null
-                && !new SessaoUsuario(this).obterEmail().isEmpty()) {
-            abrirTelaInicial();
+        FirebaseUser sessaoAtual = FirebaseAuth.getInstance().getCurrentUser();
+        if (sessaoAtual != null && !new SessaoUsuario(this).obterEmail().isEmpty()) {
+            carregarPerfilEEntrar(sessaoAtual, sessaoAtual.getEmail());
             return;
         }
 
@@ -95,31 +106,102 @@ public class LoginActivity extends AppCompatActivity {
                 });
     }
 
-    // Recupera nome e tipo de perfil do Firestore para o aparelho atual
     private void carregarPerfilEEntrar(FirebaseUser usuario, String email) {
-        FirebaseFirestore.getInstance()
-                .collection("usuarios")
-                .document(usuario.getUid())
-                .get()
-                .addOnCompleteListener(task -> {
-                    String nome = usuario.getDisplayName() != null
-                            ? usuario.getDisplayName() : "Você";
-                    String tipo = TipoPerfil.INDIVIDUAL;
-
-                    if (task.isSuccessful() && task.getResult() != null
-                            && task.getResult().exists()) {
-                        String nomeRemoto = task.getResult().getString("nome");
-                        String tipoRemoto = task.getResult().getString("tipoPerfil");
-                        if (nomeRemoto != null) nome = nomeRemoto;
-                        if (tipoRemoto != null) tipo = tipoRemoto;
+        String nome = usuario.getDisplayName() == null ? "Você" : usuario.getDisplayName();
+        perfilViewModel.carregar(usuario.getUid(), nome, email,
+                new PerfilUsuarioRepository.RetornoPerfil() {
+                    @Override
+                    public void onSuccess(br.com.meu_controle.dados.modelo.Usuario resultado) {
+                        abrirTelaInicial();
                     }
 
-                    new SessaoUsuario(this).salvarPerfil(nome, email, tipo);
-                    abrirTelaInicial();
+                    @Override
+                    public void onError(Exception error) {
+                        if (btnEntrar != null) btnEntrar.setEnabled(true);
+                        Toast.makeText(LoginActivity.this,
+                                getString(R.string.load_error), Toast.LENGTH_LONG).show();
+                        if (btnEntrar == null
+                                && !new SessaoUsuario(LoginActivity.this)
+                                .obterEmail().isEmpty()) {
+                            abrirTelaInicial();
+                        }
+                    }
                 });
     }
 
     private void abrirTelaInicial() {
+        if (verificandoConvites) return;
+        verificandoConvites = true;
+        new GrupoFamiliarRepository(getApplicationContext()).listarConvitesPendentes(
+                new GrupoFamiliarRepository.RetornoConvites() {
+                    @Override
+                    public void onSuccess(java.util.List<ConviteFamiliar> convites) {
+                        processarConvites(convites, 0);
+                    }
+
+                    @Override
+                    public void onError(Exception error) {
+                        Log.e(TAG, "Não foi possível verificar convites familiares.", error);
+                        Toast.makeText(LoginActivity.this, R.string.family_invite_load_error,
+                                Toast.LENGTH_LONG).show();
+                        navegarParaInicio();
+                    }
+                });
+    }
+
+    private void processarConvites(java.util.List<ConviteFamiliar> convites, int indice) {
+        if (indice >= convites.size()) {
+            SincronizadorContas.sincronizar();
+            navegarParaInicio();
+            return;
+        }
+        ConviteFamiliar convite = convites.get(indice);
+        String remetente = convite.emailOrigem == null
+                ? getString(R.string.grupo_familiar_title) : convite.emailOrigem;
+        String grupo = convite.grupoNome == null
+                ? getString(R.string.grupo_familiar_title) : convite.grupoNome;
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.family_invite_pending_title)
+                .setMessage(getString(R.string.family_invite_pending_message, remetente, grupo))
+                .setPositiveButton(R.string.family_invite_accept, (dialog, which) ->
+                        new GrupoFamiliarRepository(getApplicationContext()).aceitarConvite(
+                                convite, new GrupoFamiliarRepository.RetornoGrupo() {
+                                    @Override
+                                    public void onSuccess(GrupoFamiliar group,
+                                                          java.util.List<Usuario> members) {
+                                        Toast.makeText(LoginActivity.this,
+                                                R.string.family_invite_accepted,
+                                                Toast.LENGTH_SHORT).show();
+                                        processarConvites(convites, indice + 1);
+                                    }
+
+                                    @Override
+                                    public void onError(Exception error) {
+                                        Log.e(TAG, "Falha ao aceitar convite familiar.", error);
+                                        Toast.makeText(LoginActivity.this,
+                                                error.getMessage() == null
+                                                        ? getString(R.string.family_invite_error)
+                                                        : error.getMessage(),
+                                                Toast.LENGTH_LONG).show();
+                                        processarConvites(convites, indice + 1);
+                                    }
+                                }))
+                .setNegativeButton(R.string.family_invite_decline, (dialog, which) ->
+                        new GrupoFamiliarRepository(getApplicationContext()).recusarConvite(
+                                convite,
+                                () -> processarConvites(convites, indice + 1),
+                                error -> {
+                                    Log.e(TAG, "Falha ao recusar convite familiar.", error);
+                                    Toast.makeText(LoginActivity.this,
+                                            R.string.family_invite_error,
+                                            Toast.LENGTH_LONG).show();
+                                    processarConvites(convites, indice + 1);
+                                }))
+                .setOnCancelListener(dialog -> navegarParaInicio())
+                .show();
+    }
+
+    private void navegarParaInicio() {
         Intent intent = new Intent(this, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);

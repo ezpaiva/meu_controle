@@ -44,7 +44,12 @@ public class NotificationReceiver extends BroadcastReceiver {
                 }
 
                 String emailAtual = new SessaoUsuario(appContext).obterEmail();
-                if (lembrete.ownerEmail != null && !lembrete.ownerEmail.equals(emailAtual)) {
+                String grupoAtual = new SessaoUsuario(appContext).obterGrupoId();
+                boolean donoAtual = lembrete.ownerEmail != null
+                        && lembrete.ownerEmail.equalsIgnoreCase(emailAtual);
+                boolean membroDoGrupo = lembrete.groupId != null
+                        && lembrete.groupId.equals(grupoAtual);
+                if (!donoAtual && !membroDoGrupo) {
                     Log.i(TAG, "Notificação ignorada: o lembrete pertence a outra sessão.");
                     return;
                 }
@@ -52,7 +57,8 @@ public class NotificationReceiver extends BroadcastReceiver {
                 if (lembrete.contaId != null) {
                     Conta conta = db.contaDao().getById(lembrete.contaId);
                     if (conta == null || conta.deleted || TipoConta.CONCLUIDA.equals(conta.status)) {
-                        db.lembreteDao().marcarNotificado(lembrete.id);
+                        db.lembreteDao().marcarNotificadoComSync(
+                                lembrete.id, System.currentTimeMillis());
                         return;
                     }
                 }
@@ -66,7 +72,8 @@ public class NotificationReceiver extends BroadcastReceiver {
                 if (NotificationHelper.mostrar(appContext, lembrete, abrir,
                         NotificationScheduler.requestCode(lembrete.id, indiceAlerta))) {
                     if (indiceAlerta == 3) {
-                        db.lembreteDao().marcarNotificado(lembrete.id);
+                        db.lembreteDao().marcarNotificadoComSync(
+                                lembrete.id, System.currentTimeMillis());
                     }
                 } else {
                     Log.w(TAG, "Permissão de notificações ausente; lembrete mantido como pendente.");

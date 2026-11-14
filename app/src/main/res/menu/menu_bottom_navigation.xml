@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_dashboard"
+        android:title="@string/nav_home" />
+    <item
+        android:id="@+id/nav_receitas"
+        android:title="@string/nav_income" />
+    <item
+        android:id="@+id/nav_despesas"
+        android:title="@string/nav_expenses" />
+    <item
+        android:id="@+id/nav_calendario"
+        android:title="@string/nav_calendar" />
+    <item
+        android:id="@+id/nav_perfil"
+        android:title="@string/nav_profile" />
+</menu>

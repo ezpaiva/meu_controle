@@ -33,9 +33,16 @@ public class Lembrete {
     public String hora;
     public boolean ativo;
     public Long contaId;
+    public String contaRemoteId;
     public long criadoEm;
     public boolean notificado;
     public String ownerEmail;
+    public String groupId;
+    public String createdByName;
+    public String remoteId;
+    public long updatedAt;
+    public boolean syncPending;
+    public boolean deleted;
 
     public Lembrete(@NonNull String titulo, @NonNull String mensagem, long dataHora, boolean ativo,
                     Long contaId, long criadoEm, boolean notificado, String ownerEmail) {

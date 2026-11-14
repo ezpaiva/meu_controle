@@ -3,7 +3,6 @@ package br.com.meu_controle;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Bundle;
 import android.widget.TextView;
@@ -13,6 +12,9 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.lifecycle.ViewModelProvider;
+
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import java.util.List;
 
@@ -21,13 +23,14 @@ import br.com.meu_controle.dados.local.SessaoUsuario;
 import br.com.meu_controle.dados.modelo.Conta;
 import br.com.meu_controle.dados.modelo.Lembrete;
 import br.com.meu_controle.dados.modelo.TipoConta;
-import br.com.meu_controle.dados.remoto.SincronizadorContas; // NOVO
 import br.com.meu_controle.dados.repositorio.RepositorioContas;
 import br.com.meu_controle.dados.repositorio.RepositorioLembretes;
 import br.com.meu_controle.dados.repositorio.RetornoRepositorio;
 import br.com.meu_controle.telas.ListaContas;
 import br.com.meu_controle.utilitarios.FormatoFinanceiro;
+import br.com.meu_controle.utilitarios.NavegacaoInferior;
 import br.com.meu_controle.utilitarios.PieChartView;
+import br.com.meu_controle.viewmodels.SincronizacaoViewModel;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -40,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
     private RepositorioContas repositorio;
     private RepositorioLembretes repositorioLembretes;
     private ActivityResultLauncher<String> permissaoNotificacao;
+    private SincronizacaoViewModel sincronizacaoViewModel;
 
     // Views do Dashboard
     private TextView valorReceitas;
@@ -60,6 +64,8 @@ public class MainActivity extends AppCompatActivity {
         repositorioLembretes = new RepositorioLembretes(getApplicationContext());
         repositorio = new RepositorioContas(
                 BancoDados.obterInstancia(getApplicationContext()).contaDao());
+        sincronizacaoViewModel = new ViewModelProvider(this)
+                .get(SincronizacaoViewModel.class);
 
         // Inicialização das Views
         valorReceitas = findViewById(R.id.dashboard_income);
@@ -78,14 +84,13 @@ public class MainActivity extends AppCompatActivity {
         atualizarEspacoAtivo();
         carregarResumo();
         solicitarPermissaoNotificacoes();
-        repositorioLembretes.reagendarPendentes(sessao.obterEmail());
+        repositorioLembretes.reagendarPendentes(sessao.obterEmail(), sessao.obterGrupoId());
         carregarResumoLembretes();
 
         // NOVO: baixa/envia alterações e recarrega o resumo se deu certo
-        SincronizadorContas.sincronizar((sucesso, mensagem) -> {
-            if (sucesso && !isFinishing() && !isDestroyed()) {
-                carregarResumo();
-            }
+        sincronizacaoViewModel.sincronizar(new RetornoRepositorio<Void>() {
+            @Override public void onSuccess(Void ignored) { carregarResumo(); carregarResumoLembretes(); }
+            @Override public void onError(Exception error) { carregarResumo(); }
         });
     }
 
@@ -108,7 +113,7 @@ public class MainActivity extends AppCompatActivity {
     private void carregarResumoLembretes() {
         TextView quantidade = findViewById(R.id.dashboard_reminders_count);
         TextView proximo = findViewById(R.id.dashboard_next_reminder);
-        repositorioLembretes.buscarPendentes(sessao.obterEmail(),
+        repositorioLembretes.buscarPendentes(sessao.obterEmail(), sessao.obterGrupoId(),
                 new RetornoRepositorio<List<Lembrete>>() {
                     @Override
                     public void onSuccess(List<Lembrete> lembretes) {
@@ -152,8 +157,10 @@ public class MainActivity extends AppCompatActivity {
         TextView detalheEspaco = findViewById(R.id.dashboard_space_detail);
 
         if (sessao.perfilFamiliar()) {
-            nomeEspaco.setText("Família");
-            detalheEspaco.setText(getString(R.string.active_space_members, sessao.obterMembros().size() + 1));
+            nomeEspaco.setText(sessao.obterGrupoNome().isEmpty()
+                    ? getString(R.string.active_space_family) : sessao.obterGrupoNome());
+            detalheEspaco.setText(getString(R.string.active_space_members,
+                    sessao.obterMembros().size()));
         } else {
             nomeEspaco.setText(R.string.active_space_individual);
             detalheEspaco.setText(R.string.active_space_private);
@@ -172,7 +179,7 @@ public class MainActivity extends AppCompatActivity {
         if(lblData != null) lblData.setText(dataHoje);
         if(lblDataCard != null) lblDataCard.setText("Até " + dataHoje);
 
-        repositorio.buscarTodas(sessao.obterEmail(), sessao.perfilFamiliar(),
+        repositorio.buscarTodas(sessao.obterEmail(), sessao.perfilFamiliar(), sessao.obterGrupoId(),
                 new RetornoRepositorio<>() {
                     @Override
                     public void onSuccess(List<Conta> contas) {
@@ -221,30 +228,9 @@ public class MainActivity extends AppCompatActivity {
      * Configura os cliques da barra de navegação inferior e destaca a aba atual
      */
     private void configurarNavegacaoInferior() {
-        // Ação do Dashboard (A própria tela atual, sem ação necessária)
-        TextView navDashboard = findViewById(R.id.nav_dashboard);
-        navDashboard.setTextColor(getColor(R.color.receivables_accent_dark));
-        navDashboard.setTypeface(null, Typeface.BOLD);
-
-        // Ação de Receitas
-        findViewById(R.id.nav_receitas).setOnClickListener(v ->
-                abrirListaContas(TipoConta.RECEBER));
-
-        // Ação de Despesas
-        findViewById(R.id.nav_despesas).setOnClickListener(v ->
-                abrirListaContas(TipoConta.PAGAR));
-
-        // Ação de Calendário
-        findViewById(R.id.nav_calendario).setOnClickListener(v -> {
-            startActivity(new Intent(this, CalendarioActivity.class));
-            finish();
-        });
-
-        // Ação de Perfil
-        findViewById(R.id.nav_perfil).setOnClickListener(v -> {
-            startActivity(new Intent(this, PerfilActivity.class));
-            finish();
-        });
+        NavegacaoInferior.configurar(this,
+                (BottomNavigationView) findViewById(R.id.bottom_navigation),
+                R.id.nav_dashboard);
     }
 
     /**

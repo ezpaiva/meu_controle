@@ -63,6 +63,16 @@ public class LembreteAdapter extends RecyclerView.Adapter<LembreteAdapter.Lembre
             holder.conta.setText(holder.itemView.getContext().getString(
                     R.string.reminder_account_label, item.contaDescricao));
         }
+        if (lembrete.groupId == null) {
+            holder.criadoPor.setVisibility(View.GONE);
+        } else {
+            String responsavel = lembrete.createdByName == null
+                    || lembrete.createdByName.trim().isEmpty()
+                    ? lembrete.ownerEmail : lembrete.createdByName;
+            holder.criadoPor.setVisibility(View.VISIBLE);
+            holder.criadoPor.setText(holder.itemView.getContext().getString(
+                    R.string.calendar_responsible, responsavel));
+        }
         holder.dataHora.setText(new SimpleDateFormat("dd/MM/yyyy 'às' HH:mm",
                 new Locale("pt", "BR")).format(new Date(lembrete.dataHora)));
         holder.estado.setText(lembrete.notificado ? R.string.reminder_status_completed
@@ -92,6 +102,7 @@ public class LembreteAdapter extends RecyclerView.Adapter<LembreteAdapter.Lembre
         final TextView dataHora;
         final TextView estado;
         final TextView conta;
+        final TextView criadoPor;
         final SwitchMaterial switchAtivo;
         final MaterialButton editar;
         final MaterialButton excluir;
@@ -103,6 +114,7 @@ public class LembreteAdapter extends RecyclerView.Adapter<LembreteAdapter.Lembre
             dataHora = itemView.findViewById(R.id.reminder_date_time);
             estado = itemView.findViewById(R.id.reminder_status);
             conta = itemView.findViewById(R.id.reminder_account);
+            criadoPor = itemView.findViewById(R.id.reminder_created_by);
             switchAtivo = itemView.findViewById(R.id.reminder_active_switch);
             editar = itemView.findViewById(R.id.reminder_edit);
             excluir = itemView.findViewById(R.id.reminder_delete);

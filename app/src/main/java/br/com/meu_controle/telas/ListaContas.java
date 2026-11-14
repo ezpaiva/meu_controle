@@ -14,6 +14,9 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+import androidx.lifecycle.ViewModelProvider;
+
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 
@@ -27,11 +30,12 @@ import br.com.meu_controle.dados.local.BancoDados;
 import br.com.meu_controle.dados.local.SessaoUsuario;
 import br.com.meu_controle.dados.modelo.Conta;
 import br.com.meu_controle.dados.modelo.TipoConta;
-import br.com.meu_controle.dados.remoto.SincronizadorContas; // NOVO
 import br.com.meu_controle.dados.repositorio.RepositorioContas;
 import br.com.meu_controle.dados.repositorio.RepositorioLembretes;
 import br.com.meu_controle.dados.repositorio.RetornoRepositorio;
 import br.com.meu_controle.utilitarios.FormatoFinanceiro;
+import br.com.meu_controle.utilitarios.NavegacaoInferior;
+import br.com.meu_controle.viewmodels.SincronizacaoViewModel;
 
 public class ListaContas extends AppCompatActivity {
 
@@ -47,6 +51,7 @@ public class ListaContas extends AppCompatActivity {
     private View filtroContainer;
     private boolean exibindoReceitas;
     private SessaoUsuario sessao;
+    private SincronizacaoViewModel sincronizacaoViewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,6 +65,8 @@ public class ListaContas extends AppCompatActivity {
         }
         exibindoReceitas = TipoConta.RECEBER.equals(tipoConta);
         sessao = new SessaoUsuario(this);
+        sincronizacaoViewModel = new ViewModelProvider(this)
+                .get(SincronizacaoViewModel.class);
 
         atualizarEspacoAtivo();
         configurarNavegacaoInferior();
@@ -95,9 +102,16 @@ public class ListaContas extends AppCompatActivity {
             carregarContas();
 
             // NOVO: baixa/envia alterações e recarrega a lista se deu certo
-            SincronizadorContas.sincronizar((sucesso, mensagem) -> {
-                if (sucesso && !isFinishing() && !isDestroyed()) {
-                    carregarContas();
+            sincronizacaoViewModel.sincronizar(new RetornoRepositorio<Void>() {
+                @Override public void onSuccess(Void ignored) {
+                    if (!isFinishing() && !isDestroyed()) {
+                        carregarContas();
+                    }
+                }
+                @Override public void onError(Exception error) {
+                    if (!isFinishing() && !isDestroyed()) {
+                        carregarContas();
+                    }
                 }
             });
         }
@@ -139,7 +153,8 @@ public class ListaContas extends AppCompatActivity {
         TextView nomeEspaco = findViewById(R.id.active_space_name);
         TextView detalheEspaco = findViewById(R.id.active_space_detail);
         nomeEspaco.setText(sessao.perfilFamiliar() ? "Família" : "Meu espaço individual");
-        detalheEspaco.setText(sessao.perfilFamiliar() ? (sessao.obterMembros().size() + 1) + " membros" : "Privado");
+        detalheEspaco.setText(sessao.perfilFamiliar()
+                ? sessao.obterMembros().size() + " membros" : "Privado");
     }
 
     private void abrirNovaConta() {
@@ -149,7 +164,8 @@ public class ListaContas extends AppCompatActivity {
     }
 
     private void carregarContas() {
-        repositorio.buscarPorTipo(tipoConta, sessao.obterEmail(), sessao.perfilFamiliar(), new RetornoRepositorio<List<Conta>>() {
+        repositorio.buscarPorTipo(tipoConta, sessao.obterEmail(), sessao.perfilFamiliar(),
+                sessao.obterGrupoId(), new RetornoRepositorio<List<Conta>>() {
             @Override
             public void onSuccess(List<Conta> contas) {
                 listaContas.removeAllViews();
@@ -228,21 +244,9 @@ public class ListaContas extends AppCompatActivity {
     }
 
     private void configurarNavegacaoInferior() {
-        findViewById(R.id.nav_dashboard).setOnClickListener(v -> {
-            startActivity(new Intent(this, MainActivity.class)); finish();
-        });
-        findViewById(R.id.nav_receitas).setOnClickListener(v -> abrirContas(TipoConta.RECEBER));
-        findViewById(R.id.nav_despesas).setOnClickListener(v -> abrirContas(TipoConta.PAGAR));
-        findViewById(R.id.nav_calendario).setOnClickListener(v -> {
-            startActivity(new Intent(this, CalendarioActivity.class)); finish();
-        });
-        findViewById(R.id.nav_perfil).setOnClickListener(v -> {
-            startActivity(new Intent(this, PerfilActivity.class)); finish();
-        });
-
-        TextView navAtivo = findViewById(exibindoReceitas ? R.id.nav_receitas : R.id.nav_despesas);
-        navAtivo.setTextColor(getColor(R.color.green_primary));
-        navAtivo.setTypeface(null, android.graphics.Typeface.BOLD);
+        NavegacaoInferior.configurar(this,
+                (BottomNavigationView) findViewById(R.id.bottom_navigation),
+                exibindoReceitas ? R.id.nav_receitas : R.id.nav_despesas);
     }
 
     private void abrirContas(String tipo) {

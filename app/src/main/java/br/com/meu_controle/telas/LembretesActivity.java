@@ -41,6 +41,7 @@ public class LembretesActivity extends AppCompatActivity implements LembreteAdap
     private MaterialButton filtroAtivos;
     private MaterialButton filtroConcluidos;
     private String email;
+    private String groupId;
     private boolean mostrarConcluidos;
     private List<LembreteComConta> todos = new ArrayList<>();
 
@@ -50,6 +51,8 @@ public class LembretesActivity extends AppCompatActivity implements LembreteAdap
         setContentView(R.layout.activity_lembretes);
 
         email = new SessaoUsuario(this).obterEmail();
+        SessaoUsuario sessao = new SessaoUsuario(this);
+        groupId = sessao.obterGrupoId();
         viewModel = new ViewModelProvider(this).get(LembreteViewModel.class);
         RecyclerView lista = findViewById(R.id.reminders_list);
         lista.setLayoutManager(new LinearLayoutManager(this));
@@ -72,9 +75,22 @@ public class LembretesActivity extends AppCompatActivity implements LembreteAdap
         adicionar.setOnClickListener(view -> abrirEditor(null));
 
         findViewById(R.id.reminders_back).setOnClickListener(view -> finish());
-        viewModel.observarLembretesComConta(email).observe(this, lembretes -> {
+        viewModel.observarLembretesComConta(email, groupId).observe(this, lembretes -> {
             todos = lembretes == null ? new ArrayList<>() : lembretes;
             atualizarLista();
+        });
+        viewModel.sincronizar(new RetornoRepositorio<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+            }
+
+            @Override
+            public void onError(Exception error) {
+                if (!isFinishing() && !isDestroyed() && groupId != null) {
+                    Toast.makeText(LembretesActivity.this,
+                            R.string.load_error, Toast.LENGTH_LONG).show();
+                }
+            }
         });
     }
 
@@ -207,7 +223,13 @@ public class LembretesActivity extends AppCompatActivity implements LembreteAdap
         Lembrete lembrete = new Lembrete(tituloValor, mensagemValor, dataHora, ativo,
                 original == null ? null : original.contaId,
                 original == null ? System.currentTimeMillis() : original.criadoEm,
-                false, email);
+                original != null && original.notificado,
+                original == null ? email : original.ownerEmail);
+        lembrete.groupId = original == null ? groupId : original.groupId;
+        lembrete.createdByName = original == null
+                ? new SessaoUsuario(this).obterNome() : original.createdByName;
+        lembrete.remoteId = original == null ? null : original.remoteId;
+        lembrete.contaRemoteId = original == null ? null : original.contaRemoteId;
         if (original == null) {
             viewModel.inserir(lembrete, new RetornoRepositorio<Long>() {
                 @Override
@@ -281,6 +303,10 @@ public class LembretesActivity extends AppCompatActivity implements LembreteAdap
         Lembrete lembrete = new Lembrete(original.titulo, original.mensagem, dataHora,
                 ativo, original.contaId, original.criadoEm, notificado, original.ownerEmail);
         lembrete.id = original.id;
+        lembrete.groupId = original.groupId;
+        lembrete.createdByName = original.createdByName;
+        lembrete.remoteId = original.remoteId;
+        lembrete.contaRemoteId = original.contaRemoteId;
         return lembrete;
     }
 
