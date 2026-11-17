@@ -75,13 +75,33 @@ public class GerenciarCategoriasActivity extends AppCompatActivity {
 
     private void configurarToggle() {
         MaterialButtonToggleGroup toggle = findViewById(R.id.toggle_tipo);
+        MaterialButton btnNovaCategoria = findViewById(R.id.new_categoria_button);
+
+        // Define a aba de despesas como inicial e já pinta o botão de vermelho
         toggle.check(R.id.toggle_despesas);
+        atualizarCorBotaoNovaCategoria(btnNovaCategoria, TipoConta.PAGAR);
+
         toggle.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
             if (!isChecked) return;
+
             tipoAtual = checkedId == R.id.toggle_receitas
                     ? TipoConta.RECEBER : TipoConta.PAGAR;
+
+            // Muda a cor do botão "+ Nova categoria" dependendo da aba
+            atualizarCorBotaoNovaCategoria(btnNovaCategoria, tipoAtual);
+
             carregarCategorias();
         });
+    }
+
+    // Método auxiliar para mudar a cor do botão
+    private void atualizarCorBotaoNovaCategoria(MaterialButton botao, String tipo) {
+        int cor = getColor(tipo.equals(TipoConta.PAGAR)
+                ? R.color.payables_accent
+                : R.color.green_primary);
+
+        botao.setBackgroundTintList(android.content.res.ColorStateList.valueOf(cor));
+        botao.setTextColor(getColor(R.color.white));
     }
 
     private void carregarCategorias() {

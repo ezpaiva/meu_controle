@@ -1,153 +1,154 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/white"
-    android:orientation="vertical">
+    android:background="@color/gray_background"
+    tools:context=".GerenciarCategoriasActivity">
 
-    <ScrollView
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:fillViewport="true">
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingBottom="80dp">
 
+        <!-- CABEÇALHO DO ESPAÇO ATIVO -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="@drawable/bg_active_space"
             android:orientation="vertical"
             android:padding="24dp">
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_card_light_green"
-                android:gravity="center_vertical"
-                android:padding="16dp">
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/espaco_ativo"
-                        android:textColor="@color/gray_text"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/active_space_name"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:textColor="@color/black"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/active_space_detail"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/bg_badge"
-                    android:paddingHorizontal="12dp"
-                    android:paddingVertical="4dp"
-                    android:textColor="@color/black"
-                    android:textSize="12sp" />
-            </LinearLayout>
-
             <TextView
+                android:id="@+id/active_space_name"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:text="Gerenciar categorias"
+                android:text="Família"
                 android:textColor="@color/black"
-                android:textSize="28sp"
+                android:textSize="18sp"
                 android:textStyle="bold" />
 
             <TextView
+                android:id="@+id/active_space_detail"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Adicione, edite ou exclua categorias de despesas e receitas."
+                android:text="2 membros"
                 android:textColor="@color/gray_text"
                 android:textSize="14sp" />
+        </LinearLayout>
 
-            <com.google.android.material.button.MaterialButtonToggleGroup
-                android:id="@+id/toggle_tipo"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                app:selectionRequired="true"
-                app:singleSelection="true">
+        <!-- TÍTULO -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="24dp"
+            android:layout_marginTop="24dp"
+            android:layout_marginEnd="24dp"
+            android:text="Gerenciar categorias"
+            android:textColor="@color/black"
+            android:textSize="22sp"
+            android:textStyle="bold" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/toggle_despesas"
-                    style="?attr/materialButtonOutlinedStyle"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_weight="1"
-                    android:backgroundTint="@color/toggle_categorias_background"
-                    android:text="Despesas"
-                    android:textAllCaps="false"
-                    android:textColor="@color/toggle_categorias_text"
-                    app:cornerRadius="8dp"
-                    app:strokeColor="@color/toggle_categorias_stroke"
-                    app:strokeWidth="1dp" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="24dp"
+            android:layout_marginEnd="24dp"
+            android:layout_marginBottom="16dp"
+            android:text="Adicione, edite ou exclua categorias de despesas e receitas."
+            android:textColor="@color/gray_text"
+            android:textSize="14sp" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/toggle_receitas"
-                    style="?attr/materialButtonOutlinedStyle"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_weight="1"
-                    android:backgroundTint="@color/toggle_categorias_background"
-                    android:text="Receitas"
-                    android:textAllCaps="false"
-                    android:textColor="@color/toggle_categorias_text"
-                    app:cornerRadius="8dp"
-                    app:strokeColor="@color/toggle_categorias_stroke"
-                    app:strokeWidth="1dp" />
-            </com.google.android.material.button.MaterialButtonToggleGroup>
+        <!-- BOTÕES DE ALTERNÂNCIA (TOGGLE) -->
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/toggle_tipo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="24dp"
+            app:singleSelection="true"
+            app:selectionRequired="true">
 
+            <!-- ABA RECEITAS -->
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/new_categoria_button"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginTop="16dp"
-                android:backgroundTint="@color/green_primary"
-                android:text="+ Nova categoria"
+                android:id="@+id/toggle_receitas"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Receitas"
                 android:textAllCaps="false"
-                android:textColor="@color/white"
-                android:textSize="16sp"
-                app:cornerRadius="8dp" />
+                android:textColor="@color/toggle_receitas_text"
+                app:backgroundTint="@color/toggle_receitas_bg"
+                app:strokeColor="@color/green_primary" />
+
+            <!-- ABA DESPESAS -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/toggle_despesas"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Despesas"
+                android:textAllCaps="false"
+                android:textColor="@color/toggle_despesas_text"
+                app:backgroundTint="@color/toggle_despesas_bg"
+                app:strokeColor="@color/payables_accent" />
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+
+        <!-- BOTÃO + NOVA CATEGORIA -->
+        <!-- A cor de fundo será definida dinamicamente no Java -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/new_categoria_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="24dp"
+            android:layout_marginTop="16dp"
+            android:text="+ Nova categoria"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            app:cornerRadius="8dp" />
+
+        <!-- MENSAGEM DE LISTA VAZIA -->
+        <TextView
+            android:id="@+id/empty_categorias_message"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="32dp"
+            android:gravity="center"
+            android:text="Nenhuma categoria cadastrada."
+            android:textColor="@color/gray_text"
+            android:textSize="16sp"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <!-- LISTA DE CATEGORIAS -->
+        <androidx.core.widget.NestedScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginTop="8dp">
 
             <LinearLayout
                 android:id="@+id/categorias_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:orientation="vertical" />
+                android:orientation="vertical"
+                android:paddingHorizontal="24dp"
+                android:paddingBottom="24dp" />
+        </androidx.core.widget.NestedScrollView>
 
-            <TextView
-                android:id="@+id/empty_categorias_message"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="32dp"
-                android:gravity="center"
-                android:text="Nenhuma categoria cadastrada."
-                android:textColor="@color/gray_text"
-                android:visibility="gone" />
+    </LinearLayout>
 
-        </LinearLayout>
-    </ScrollView>
-
-    <include
-        layout="@layout/layout_bottom_nav"
+    <!-- BARRA DE NAVEGAÇÃO INFERIOR -->
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottom_navigation"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
-</LinearLayout>
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="@color/white"
+        app:elevation="10dp"
+        app:menu="@menu/menu_bottom_navigation" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
