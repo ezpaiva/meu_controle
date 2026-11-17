@@ -4,14 +4,13 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/gray_background"
+    android:background="@android:color/background_light"
     tools:context=".GerenciarCategoriasActivity">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:paddingBottom="80dp">
+        android:orientation="vertical">
 
         <!-- CABEÇALHO DO ESPAÇO ATIVO -->
         <LinearLayout
@@ -39,17 +38,35 @@
                 android:textSize="14sp" />
         </LinearLayout>
 
-        <!-- TÍTULO -->
-        <TextView
+        <!-- TÍTULO COM BOTÃO VOLTAR -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="24dp"
-            android:layout_marginTop="24dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
             android:layout_marginEnd="24dp"
-            android:text="Gerenciar categorias"
-            android:textColor="@color/black"
-            android:textSize="22sp"
-            android:textStyle="bold" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <!-- Botão de Voltar -->
+            <ImageButton
+                android:id="@+id/btn_voltar"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Voltar"
+                android:src="@drawable/ic_nav_back"
+                app:tint="@color/black" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="Gerenciar categorias"
+                android:textColor="@color/black"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <TextView
             android:layout_width="match_parent"
@@ -70,7 +87,6 @@
             app:singleSelection="true"
             app:selectionRequired="true">
 
-            <!-- ABA RECEITAS -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/toggle_receitas"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
@@ -83,7 +99,6 @@
                 app:backgroundTint="@color/toggle_receitas_bg"
                 app:strokeColor="@color/green_primary" />
 
-            <!-- ABA DESPESAS -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/toggle_despesas"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
@@ -98,7 +113,6 @@
         </com.google.android.material.button.MaterialButtonToggleGroup>
 
         <!-- BOTÃO + NOVA CATEGORIA -->
-        <!-- A cor de fundo será definida dinamicamente no Java -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/new_categoria_button"
             android:layout_width="match_parent"
@@ -140,15 +154,5 @@
         </androidx.core.widget.NestedScrollView>
 
     </LinearLayout>
-
-    <!-- BARRA DE NAVEGAÇÃO INFERIOR -->
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/bottom_navigation"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:background="@color/white"
-        app:elevation="10dp"
-        app:menu="@menu/menu_bottom_navigation" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

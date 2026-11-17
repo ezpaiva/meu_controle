@@ -48,9 +48,13 @@ public class GerenciarCategoriasActivity extends AppCompatActivity {
         listaCategorias = findViewById(R.id.categorias_container);
         mensagemVazia = findViewById(R.id.empty_categorias_message);
 
+        // ADICIONADO: Ação do botão voltar
+        findViewById(R.id.btn_voltar).setOnClickListener(v -> finish());
+
         atualizarEspacoAtivo();
         configurarToggle();
-        configurarNavegacaoInferior();
+
+        // REMOVIDO: configurarNavegacaoInferior();
 
         findViewById(R.id.new_categoria_button)
                 .setOnClickListener(v -> abrirDialogCategoria(null));
@@ -226,9 +230,4 @@ public class GerenciarCategoriasActivity extends AppCompatActivity {
                 .show();
     }
 
-    private void configurarNavegacaoInferior() {
-        NavegacaoInferior.configurar(this,
-                (BottomNavigationView) findViewById(R.id.bottom_navigation),
-                R.id.nav_perfil, true);
-    }
 }
