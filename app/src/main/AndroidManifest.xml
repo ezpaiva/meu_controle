@@ -48,7 +48,8 @@
             android:exported="false" />
         <activity
             android:name=".telas.LembretesActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:launchMode="singleTop" />
         <activity
             android:name=".MainActivity"
             android:exported="false"

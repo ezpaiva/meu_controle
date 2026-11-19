@@ -5,6 +5,7 @@ import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
@@ -20,7 +21,9 @@ import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import br.com.meu_controle.CalendarioActivity;
 import br.com.meu_controle.MainActivity;
@@ -28,11 +31,14 @@ import br.com.meu_controle.PerfilActivity;
 import br.com.meu_controle.R;
 import br.com.meu_controle.dados.local.BancoDados;
 import br.com.meu_controle.dados.local.SessaoUsuario;
+import br.com.meu_controle.dados.modelo.Categoria;
 import br.com.meu_controle.dados.modelo.Conta;
 import br.com.meu_controle.dados.modelo.TipoConta;
+import br.com.meu_controle.dados.repositorio.RepositorioCategorias;
 import br.com.meu_controle.dados.repositorio.RepositorioContas;
 import br.com.meu_controle.dados.repositorio.RepositorioLembretes;
 import br.com.meu_controle.dados.repositorio.RetornoRepositorio;
+import br.com.meu_controle.utilitarios.FiltroContas;
 import br.com.meu_controle.utilitarios.FormatoFinanceiro;
 import br.com.meu_controle.utilitarios.NavegacaoInferior;
 import br.com.meu_controle.viewmodels.SincronizacaoViewModel;
@@ -43,6 +49,7 @@ public class ListaContas extends AppCompatActivity {
 
     private String tipoConta;
     private RepositorioContas repositorio;
+    private RepositorioCategorias repositorioCategorias;
     private LinearLayout listaContas;
     private TextView mensagemVazia;
     private MaterialCardView cartaoResumo;
@@ -52,6 +59,14 @@ public class ListaContas extends AppCompatActivity {
     private boolean exibindoReceitas;
     private SessaoUsuario sessao;
     private SincronizacaoViewModel sincronizacaoViewModel;
+
+    // ---------- Filtro de categorias ----------
+    private Spinner spinnerCategoria;
+    private CharSequence textoVazioPadrao;
+    private final List<Conta> todasContas = new ArrayList<>();
+    private final List<String> categoriasCadastradas = new ArrayList<>();
+    private final List<String> opcoesFiltro = new ArrayList<>();
+    private String categoriaFiltro = null; // null = todas as categorias
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,9 +89,11 @@ public class ListaContas extends AppCompatActivity {
         BancoDados bancoDados = BancoDados.obterInstancia(getApplicationContext());
         repositorio = new RepositorioContas(bancoDados.contaDao(),
                 new RepositorioLembretes(getApplicationContext()));
+        repositorioCategorias = new RepositorioCategorias(bancoDados.categoriaDao());
 
         listaContas = findViewById(R.id.accounts_container);
         mensagemVazia = findViewById(R.id.empty_accounts_message);
+        textoVazioPadrao = mensagemVazia.getText();
         cartaoResumo = findViewById(R.id.accounts_summary_card);
         rotuloResumo = findViewById(R.id.accounts_summary_label);
         valorResumo = findViewById(R.id.accounts_summary_amount);
@@ -99,12 +116,14 @@ public class ListaContas extends AppCompatActivity {
         super.onResume();
         if (repositorio != null) {
             atualizarEspacoAtivo();
+            carregarCategorias();
             carregarContas();
 
-            // NOVO: baixa/envia alterações e recarrega a lista se deu certo
+            // Baixa/envia alterações e recarrega a lista (mantendo o filtro escolhido)
             sincronizacaoViewModel.sincronizar(new RetornoRepositorio<Void>() {
                 @Override public void onSuccess(Void ignored) {
                     if (!isFinishing() && !isDestroyed()) {
+                        carregarCategorias();
                         carregarContas();
                     }
                 }
@@ -137,15 +156,82 @@ public class ListaContas extends AppCompatActivity {
         }
     }
 
+    // ---------- Filtro de categorias ----------
     private void configurarFiltros() {
         if (exibindoReceitas) {
             filtroContainer.setVisibility(View.GONE);
-        } else {
-            filtroContainer.setVisibility(View.VISIBLE);
-            Spinner spinner = findViewById(R.id.category_spinner);
-            String[] categorias = {"Todas categorias", "Alimentação", "Transporte", "Moradia", "Saúde", "Lazer", "Educação", "Outros"};
-            ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, categorias);
-            spinner.setAdapter(adapter);
+            return;
+        }
+
+        filtroContainer.setVisibility(View.VISIBLE);
+        spinnerCategoria = findViewById(R.id.category_spinner);
+        atualizarOpcoesFiltro(); // começa só com "Todas categorias"
+
+        spinnerCategoria.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int posicao, long id) {
+                String escolhida = (posicao <= 0 || posicao >= opcoesFiltro.size())
+                        ? null : opcoesFiltro.get(posicao);
+                if (!Objects.equals(escolhida, categoriaFiltro)) {
+                    categoriaFiltro = escolhida;
+                    exibirContas();
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+            }
+        });
+    }
+
+    /** Busca as categorias de despesa do usuário (ou da família) para montar o filtro. */
+    private void carregarCategorias() {
+        if (exibindoReceitas) return;
+
+        repositorioCategorias.buscarPorTipo(tipoConta, sessao.obterEmail(),
+                sessao.perfilFamiliar(), sessao.obterGrupoId(),
+                new RetornoRepositorio<List<Categoria>>() {
+                    @Override
+                    public void onSuccess(List<Categoria> categorias) {
+                        if (isFinishing() || isDestroyed()) return;
+                        categoriasCadastradas.clear();
+                        for (Categoria categoria : categorias) {
+                            if (categoria.nome != null) categoriasCadastradas.add(categoria.nome);
+                        }
+                        atualizarOpcoesFiltro();
+                    }
+
+                    @Override
+                    public void onError(Exception error) {
+                        // Sem as cadastradas, o filtro usa as categorias das próprias despesas
+                    }
+                });
+    }
+
+    /** Recria as opções do filtro só se mudaram, preservando a categoria escolhida. */
+    private void atualizarOpcoesFiltro() {
+        if (spinnerCategoria == null) return;
+
+        List<String> novas = FiltroContas.opcoesDeCategoria(categoriasCadastradas, todasContas);
+
+        // A categoria filtrada pode ter sido renomeada ou excluída
+        if (categoriaFiltro != null && !novas.contains(categoriaFiltro)) {
+            categoriaFiltro = null;
+        }
+
+        if (!novas.equals(opcoesFiltro)) {
+            opcoesFiltro.clear();
+            opcoesFiltro.addAll(novas);
+
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+                    android.R.layout.simple_spinner_item, new ArrayList<>(opcoesFiltro));
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spinnerCategoria.setAdapter(adapter);
+        }
+
+        int indice = categoriaFiltro == null ? 0 : opcoesFiltro.indexOf(categoriaFiltro);
+        if (spinnerCategoria.getSelectedItemPosition() != indice) {
+            spinnerCategoria.setSelection(indice);
         }
     }
 
@@ -166,28 +252,45 @@ public class ListaContas extends AppCompatActivity {
     private void carregarContas() {
         repositorio.buscarPorTipo(tipoConta, sessao.obterEmail(), sessao.perfilFamiliar(),
                 sessao.obterGrupoId(), new RetornoRepositorio<List<Conta>>() {
-            @Override
-            public void onSuccess(List<Conta> contas) {
-                listaContas.removeAllViews();
-                mensagemVazia.setVisibility(contas.isEmpty() ? View.VISIBLE : View.GONE);
-                long totalCentavos = 0;
-                for (Conta conta : contas) totalCentavos += conta.amountInCents;
+                    @Override
+                    public void onSuccess(List<Conta> contas) {
+                        if (isFinishing() || isDestroyed()) return;
+                        todasContas.clear();
+                        todasContas.addAll(contas);
+                        atualizarOpcoesFiltro();
+                        exibirContas();
+                    }
+                    @Override
+                    public void onError(Exception erro) {
+                        Toast.makeText(ListaContas.this, R.string.load_error, Toast.LENGTH_LONG).show();
+                    }
+                });
+    }
 
-                valorResumo.setText(FormatoFinanceiro.formatAmount(totalCentavos));
-                quantidadeResumo.setText(contas.size() + " registros");
+    /** Desenha a lista aplicando o filtro de categoria às contas já carregadas. */
+    private void exibirContas() {
+        List<Conta> contas = FiltroContas.porCategoria(todasContas, categoriaFiltro);
 
-                LayoutInflater inflater = LayoutInflater.from(ListaContas.this);
-                for (Conta conta : contas) {
-                    View linha = inflater.inflate(R.layout.item_account, listaContas, false);
-                    preencherConta(linha, conta);
-                    listaContas.addView(linha);
-                }
-            }
-            @Override
-            public void onError(Exception erro) {
-                Toast.makeText(ListaContas.this, R.string.load_error, Toast.LENGTH_LONG).show();
-            }
-        });
+        listaContas.removeAllViews();
+        mensagemVazia.setText(todasContas.isEmpty() || categoriaFiltro == null
+                ? textoVazioPadrao : "Nenhuma despesa nesta categoria");
+        mensagemVazia.setVisibility(contas.isEmpty() ? View.VISIBLE : View.GONE);
+
+        long totalCentavos = 0;
+        for (Conta conta : contas) totalCentavos += conta.amountInCents;
+
+        String rotulo = exibindoReceitas ? "Total de receitas" : "Total de despesas";
+        if (categoriaFiltro != null) rotulo += " · " + categoriaFiltro;
+        rotuloResumo.setText(rotulo);
+        valorResumo.setText(FormatoFinanceiro.formatAmount(totalCentavos));
+        quantidadeResumo.setText(contas.size() + (contas.size() == 1 ? " registro" : " registros"));
+
+        LayoutInflater inflater = LayoutInflater.from(this);
+        for (Conta conta : contas) {
+            View linha = inflater.inflate(R.layout.item_account, listaContas, false);
+            preencherConta(linha, conta);
+            listaContas.addView(linha);
+        }
     }
 
     private void preencherConta(View linha, Conta conta) {

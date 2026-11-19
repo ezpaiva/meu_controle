@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/reminders_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#F8F9FA"
@@ -10,14 +11,19 @@
     <TextView
         android:id="@+id/reminders_back"
         android:layout_width="wrap_content"
-        android:layout_height="48dp"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:contentDescription="@string/reminder_back_accessibility"
+        android:focusable="true"
         android:gravity="center_vertical"
+        android:minWidth="88dp"
+        android:minHeight="48dp"
+        android:paddingEnd="16dp"
         android:text="@string/btn_voltar"
         android:textColor="@color/green_primary"
-        android:textStyle="bold"
-        android:clickable="true"
-        android:focusable="true"
-        android:contentDescription="@string/reminder_back_accessibility" />
+        android:textSize="16sp"
+        android:textStyle="bold" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -32,8 +38,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        app:singleSelection="true"
-        app:selectionRequired="true">
+        app:selectionRequired="true"
+        app:singleSelection="true">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/reminders_filter_active"

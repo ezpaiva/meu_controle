@@ -4,20 +4,27 @@ import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.os.Bundle;
 import android.text.InputType;
+import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.snackbar.Snackbar;
 
 import br.com.meu_controle.R;
 import br.com.meu_controle.dados.local.SessaoUsuario;
@@ -35,6 +42,8 @@ import java.util.Locale;
 
 public class LembretesActivity extends AppCompatActivity implements LembreteAdapter.Acoes {
 
+    private static final String TAG = "LEMBRETES";
+
     private LembreteViewModel viewModel;
     private LembreteAdapter adapter;
     private TextView mensagemVazia;
@@ -45,20 +54,46 @@ public class LembretesActivity extends AppCompatActivity implements LembreteAdap
     private boolean mostrarConcluidos;
     private List<LembreteComConta> todos = new ArrayList<>();
 
+    /** Snackbar ativo, para garantir que só exista um por vez e para dispensá-lo ao sair. */
+    private Snackbar snackbarAtual;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_lembretes);
+        // Mantém o conteúdo (e o botão Voltar) fora da barra de status e da barra de navegação
+        View raiz = findViewById(R.id.reminders_root);
+        int esquerda = raiz.getPaddingLeft();
+        int topo = raiz.getPaddingTop();
+        int direita = raiz.getPaddingRight();
+        int base = raiz.getPaddingBottom();
+        ViewCompat.setOnApplyWindowInsetsListener(raiz, (v, windowInsets) -> {
+            Insets barras = windowInsets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            v.setPadding(esquerda + barras.left, topo + barras.top,
+                    direita + barras.right, base + barras.bottom);
+            return windowInsets;
+        });
 
-        email = new SessaoUsuario(this).obterEmail();
         SessaoUsuario sessao = new SessaoUsuario(this);
+        email = sessao.obterEmail();
         groupId = sessao.obterGrupoId();
+        if (email == null) email = "";
+        if (groupId == null) groupId = "";
+
         viewModel = new ViewModelProvider(this).get(LembreteViewModel.class);
+
         RecyclerView lista = findViewById(R.id.reminders_list);
         lista.setLayoutManager(new LinearLayoutManager(this));
         adapter = new LembreteAdapter(this);
         lista.setAdapter(adapter);
+
         mensagemVazia = findViewById(R.id.reminders_empty);
+        // Garante que a mensagem vazia nunca intercepte toques (mesmo que o layout a coloque por cima).
+        mensagemVazia.setClickable(false);
+        mensagemVazia.setFocusable(false);
+        mensagemVazia.setFocusableInTouchMode(false);
+
         filtroAtivos = findViewById(R.id.reminders_filter_active);
         filtroConcluidos = findViewById(R.id.reminders_filter_completed);
 
@@ -70,33 +105,126 @@ public class LembretesActivity extends AppCompatActivity implements LembreteAdap
             mostrarConcluidos = true;
             atualizarLista();
         });
+
         FloatingActionButton adicionar = findViewById(R.id.reminders_add);
         adicionar.setContentDescription(getString(R.string.reminder_add_accessibility));
         adicionar.setOnClickListener(view -> abrirEditor(null));
 
-        findViewById(R.id.reminders_back).setOnClickListener(view -> finish());
+        // Botão "voltar" da tela: passa por sairDaTela() para dispensar Snackbar antes.
+        View botaoVoltar = findViewById(R.id.reminders_back);
+        if (botaoVoltar != null) {
+            botaoVoltar.setOnClickListener(view -> {
+                Log.d(TAG, "Botão voltar da tela clicado.");
+                sairDaTela();
+            });
+        } else {
+            Log.w(TAG, "R.id.reminders_back não encontrado no layout.");
+        }
+
+        // Botão físico / gesto "voltar" também respeita sairDaTela().
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                Log.d(TAG, "Back do sistema acionado.");
+                sairDaTela();
+            }
+        });
+
+        // Fonte de verdade: Room. Sempre.
         viewModel.observarLembretesComConta(email, groupId).observe(this, lembretes -> {
             todos = lembretes == null ? new ArrayList<>() : lembretes;
             atualizarLista();
         });
-        viewModel.sincronizar(new RetornoRepositorio<Void>() {
-            @Override
-            public void onSuccess(Void result) {
-            }
 
-            @Override
-            public void onError(Exception error) {
-                if (!isFinishing() && !isDestroyed() && groupId != null) {
-                    Toast.makeText(LembretesActivity.this,
-                            R.string.load_error, Toast.LENGTH_LONG).show();
+        // Sincronização best-effort (RNF03): só mostra Snackbar em erro de contrato.
+        boolean podeSincronizar = !email.isEmpty() && !groupId.isEmpty();
+        if (podeSincronizar) {
+            viewModel.sincronizar(new RetornoRepositorio<Void>() {
+                @Override
+                public void onSuccess(Void result) {
+                    // estado normal ou sucesso — silencioso.
                 }
-            }
-        });
+
+                @Override
+                public void onError(Exception error) {
+                    if (isFinishing() || isDestroyed()) return;
+
+                    String msg = (error != null
+                            && error.getMessage() != null
+                            && !error.getMessage().isEmpty())
+                            ? error.getMessage()
+                            : getString(R.string.load_error);
+
+                    mostrarSnackbar(msg);
+                }
+            });
+        } else {
+            Log.d(TAG, "Sincronização ignorada: email ou groupId ausente "
+                    + "(email=" + email + ", groupId=" + groupId + ")");
+        }
+    }
+
+    /**
+     * Exibe um Snackbar único. Se já houver um na tela, é dispensado primeiro para
+     * evitar fila e garantir que só uma instância bloqueie toques por vez.
+     */
+    private void mostrarSnackbar(String mensagem) {
+        if (isFinishing() || isDestroyed()) return;
+
+        if (snackbarAtual != null && snackbarAtual.isShown()) {
+            snackbarAtual.dismiss();
+        }
+
+        View ancora = obterAncoraSnackbar();
+        if (ancora == null) {
+            Log.w(TAG, "Sem âncora válida para Snackbar; usando Toast.");
+            Toast.makeText(this, mensagem, Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        snackbarAtual = Snackbar.make(ancora, mensagem, Snackbar.LENGTH_LONG)
+                .setAction(R.string.reminder_cancel, v -> { /* dispensa */ });
+        snackbarAtual.show();
+    }
+
+    /**
+     * Ancora o Snackbar no primeiro filho do content view (o root do nosso layout),
+     * nunca diretamente em android.R.id.content, para não inflar a região de toque
+     * sobre o container inteiro da janela.
+     */
+    private View obterAncoraSnackbar() {
+        ViewGroup content = findViewById(android.R.id.content);
+        if (content != null && content.getChildCount() > 0) {
+            return content.getChildAt(0);
+        }
+        // Fallback: qualquer view conhecida do layout.
+        View lista = findViewById(R.id.reminders_list);
+        return lista != null ? lista : content;
+    }
+
+    /** Fecha a Activity limpando qualquer Snackbar pendente antes. */
+    private void sairDaTela() {
+        if (snackbarAtual != null && snackbarAtual.isShown()) {
+            snackbarAtual.dismiss();
+            snackbarAtual = null;
+        }
+        finish();
+    }
+
+    @Override
+    protected void onDestroy() {
+        // Evita segurar a Activity em memória via callback de Snackbar.
+        if (snackbarAtual != null) {
+            snackbarAtual.dismiss();
+            snackbarAtual = null;
+        }
+        super.onDestroy();
     }
 
     private void atualizarLista() {
         List<LembreteComConta> filtrados = new ArrayList<>();
         for (LembreteComConta item : todos) {
+            if (item == null || item.lembrete == null) continue;
             boolean concluido = item.lembrete.notificado;
             if (concluido == mostrarConcluidos) {
                 filtrados.add(item);

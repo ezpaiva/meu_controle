@@ -1,9 +1,11 @@
 package br.com.meu_controle.dados.remoto;
 
 import android.content.Context;
+import android.util.Log;
 
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
+import com.google.firebase.FirebaseApp;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -27,24 +29,47 @@ import br.com.meu_controle.services.NotificationScheduler;
 
 final class SincronizadorFamiliar {
 
+    private static final String TAG = "SincronizadorFamiliar";
     private static final long TIMEOUT_SEGUNDOS = 20;
 
     private SincronizadorFamiliar() {
     }
 
     static void sincronizar(Context context, String groupId) throws Exception {
+        // Escopo individual — nada a sincronizar em grupo.
+        if (groupId == null || groupId.trim().isEmpty()) {
+            Log.d(TAG, "groupId vazio; sincronização familiar ignorada.");
+            return;
+        }
+
+        // Firebase pode não estar inicializado (sem google-services.json).
+        // Nesse caso, saímos silenciosamente: não é falha do usuário.
+        if (FirebaseApp.getApps(context).isEmpty()) {
+            Log.w(TAG, "FirebaseApp não inicializado; sincronização familiar ignorada.");
+            return;
+        }
+
+        FirebaseFirestore firestore;
+        try {
+            firestore = FirebaseFirestore.getInstance();
+        } catch (IllegalStateException e) {
+            Log.w(TAG, "FirebaseFirestore indisponível; sincronização ignorada.", e);
+            return;
+        }
+
         BancoDados db = BancoDados.obterInstancia(context);
         String base = "grupos_familiares";
-        CollectionReference categorias = FirebaseFirestore.getInstance().collection(base)
+        CollectionReference categorias = firestore.collection(base)
                 .document(groupId).collection("categorias");
-        CollectionReference lembretes = FirebaseFirestore.getInstance().collection(base)
+        CollectionReference lembretes = firestore.collection(base)
                 .document(groupId).collection("lembretes");
+
         sincronizarCategorias(db.categoriaDao(), categorias, groupId);
         sincronizarLembretes(context, db.lembreteDao(), db.contaDao(), lembretes, groupId);
     }
 
     private static void sincronizarCategorias(CategoriaDao dao, CollectionReference colecao,
-                                             String groupId) throws Exception {
+                                              String groupId) throws Exception {
         List<Categoria> pendentes = dao.getPendentesDoGrupo(groupId);
         for (Categoria categoria : pendentes) {
             if (categoria.remoteId == null || categoria.remoteId.trim().isEmpty()) {

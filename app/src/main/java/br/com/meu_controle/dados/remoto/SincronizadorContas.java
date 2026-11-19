@@ -10,6 +10,7 @@ import android.util.Log;
 
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
+import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.CollectionReference;
@@ -37,8 +38,25 @@ import br.com.meu_controle.services.NotificationScheduler;
 
 public final class SincronizadorContas {
 
+    /**
+     * Resultado de uma tentativa de sincronização.
+     *
+     * - onSuccess: sincronizou de fato, ou estado normal que NÃO é erro
+     *              (offline, sem sessão). A UI não deve exibir aviso.
+     * - onError:   falha transitória (timeout, rede ruim). Logar, não travar tela.
+     * - aoBloquearAcesso: erro de contrato (grupo removido). A UI DEVE avisar
+     *              o usuário e, se aplicável, redirecionar para o perfil individual.
+     */
     public interface Retorno {
         void aoConcluir(boolean sucesso, String mensagem);
+
+        /**
+         * Erro de contrato que exige feedback ao usuário.
+         * A implementação padrão mantém compatibilidade com chamadores antigos.
+         */
+        default void aoBloquearAcesso(String motivo) {
+            aoConcluir(false, motivo);
+        }
     }
 
     private static final String TAG = "Sync";
@@ -55,13 +73,39 @@ public final class SincronizadorContas {
 
     public static void sincronizar(Retorno retorno) {
         Context context = MeuControleApp.obterContexto();
-        FirebaseUser usuario = FirebaseAuth.getInstance().getCurrentUser();
-        if (context == null || usuario == null) {
-            avisar(retorno, false, "Nenhum usuário autenticado.");
+        if (context == null) {
+            // Sem contexto de aplicação: nada a fazer, mas NÃO é erro do usuário.
+            avisarEstadoNormal(retorno, "Contexto indisponível.");
             return;
         }
+
+        // Firebase pode não estar configurado (ex.: dev sem google-services.json).
+        // Não é erro do usuário — loga e retorna sucesso silencioso.
+        if (FirebaseApp.getApps(context).isEmpty()) {
+            Log.w(TAG, "FirebaseApp não inicializado; sincronização ignorada.");
+            avisarEstadoNormal(retorno, "Sincronização indisponível.");
+            return;
+        }
+
+        FirebaseUser usuario;
+        try {
+            usuario = FirebaseAuth.getInstance().getCurrentUser();
+        } catch (IllegalStateException e) {
+            Log.w(TAG, "FirebaseAuth indisponível.", e);
+            avisarEstadoNormal(retorno, "Sincronização indisponível.");
+            return;
+        }
+
+        if (usuario == null) {
+            // Usuário deslogado é estado normal; o app funciona 100% local.
+            avisarEstadoNormal(retorno, "Nenhum usuário autenticado.");
+            return;
+        }
+
         if (!temInternet(context)) {
-            avisar(retorno, false, "Sem conexão. As alterações continuam salvas localmente.");
+            // RNF03: offline NÃO é erro.
+            avisarEstadoNormal(retorno,
+                    "Sem conexão. As alterações continuam salvas localmente.");
             return;
         }
 
@@ -69,34 +113,47 @@ public final class SincronizadorContas {
         String email = sessao.obterEmail();
         String groupId = sessao.obterGrupoId();
         if (email == null || email.trim().isEmpty()) {
-            avisar(retorno, false, "Sessão sem e-mail.");
+            avisarEstadoNormal(retorno, "Sessão sem e-mail.");
             return;
         }
+
+        final String emailFinal = email;
+        final String groupIdFinal = groupId;
+        final FirebaseUser usuarioFinal = usuario;
 
         EXECUTOR.execute(() -> {
             try {
                 BancoDados db = BancoDados.obterInstancia(context);
                 ContaDao dao = db.contaDao();
-                if (groupId == null || groupId.trim().isEmpty()) {
+                if (groupIdFinal == null || groupIdFinal.trim().isEmpty()) {
                     CollectionReference contas = FirebaseFirestore.getInstance()
-                            .collection("usuarios").document(usuario.getUid())
+                            .collection("usuarios").document(usuarioFinal.getUid())
                             .collection("contas");
-                    dao.adotarContasSemDono(email);
-                    baixarPessoais(dao, contas, email);
-                    enviarPessoais(dao, contas, email);
+                    dao.adotarContasSemDono(emailFinal);
+                    baixarPessoais(dao, contas, emailFinal);
+                    enviarPessoais(dao, contas, emailFinal);
                 } else {
-                    validarAssociacao(context, db, usuario, sessao, email, groupId);
+                    validarAssociacao(context, db, usuarioFinal, sessao, emailFinal, groupIdFinal);
                     CollectionReference contas = FirebaseFirestore.getInstance()
-                            .collection("grupos_familiares").document(groupId)
+                            .collection("grupos_familiares").document(groupIdFinal)
                             .collection("contas");
-                    baixarDoGrupo(dao, contas, email, groupId);
-                    enviarDoGrupo(dao, contas, groupId);
-                    SincronizadorFamiliar.sincronizar(context, groupId);
+                    baixarDoGrupo(dao, contas, emailFinal, groupIdFinal);
+                    enviarDoGrupo(dao, contas, groupIdFinal);
+                    SincronizadorFamiliar.sincronizar(context, groupIdFinal);
                 }
-                avisar(retorno, true, "Sincronizado.");
-            } catch (Exception error) {
-                Log.e(TAG, "Falha ao sincronizar", error);
-                avisar(retorno, false, "Falha ao sincronizar: " + error.getMessage());
+                avisarSucesso(retorno, "Sincronizado.");
+            } catch (SecurityException e) {
+                // Contrato violado (ex.: removido do grupo). PRECISA chegar ao usuário.
+                Log.w(TAG, "Acesso bloqueado durante sincronização.", e);
+                avisarBloqueio(retorno, e.getMessage() == null
+                        ? "Seu acesso ao grupo familiar foi removido."
+                        : e.getMessage());
+            } catch (Exception e) {
+                // Timeout, permission denied, rede ruim, etc.
+                // Falha transitória — o dado local está intacto. Loga e segue.
+                Log.w(TAG, "Falha transitória na sincronização remota: " + e.getMessage()
+                        + " (dados locais preservados).", e);
+                avisarFalhaTransitoria(retorno, "Falha ao sincronizar: " + e.getMessage());
             }
         });
     }
@@ -269,7 +326,25 @@ public final class SincronizadorContas {
                 && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
     }
 
-    private static void avisar(Retorno retorno, boolean sucesso, String mensagem) {
-        if (retorno != null) MAIN.post(() -> retorno.aoConcluir(sucesso, mensagem));
+    // ---- despacho de callbacks no main thread, com semântica explícita ----
+
+    private static void avisarEstadoNormal(Retorno retorno, String mensagem) {
+        if (retorno == null) return;
+        MAIN.post(() -> retorno.aoConcluir(true, mensagem));
+    }
+
+    private static void avisarSucesso(Retorno retorno, String mensagem) {
+        if (retorno == null) return;
+        MAIN.post(() -> retorno.aoConcluir(true, mensagem));
+    }
+
+    private static void avisarFalhaTransitoria(Retorno retorno, String mensagem) {
+        if (retorno == null) return;
+        MAIN.post(() -> retorno.aoConcluir(false, mensagem));
+    }
+
+    private static void avisarBloqueio(Retorno retorno, String motivo) {
+        if (retorno == null) return;
+        MAIN.post(() -> retorno.aoBloquearAcesso(motivo));
     }
 }

@@ -57,11 +57,41 @@ public class RepositorioLembretes {
         return lembreteDao.observarComContaPorEscopo(email, groupId);
     }
 
+    /**
+     * RNF03 / RF21: sincronização é best-effort. Room é a fonte de verdade.
+     *
+     * Distingue três categorias:
+     *  - SUCESSO ou estado normal (offline, sem sessão): onSuccess — tela não avisa.
+     *  - BLOQUEIO DE ACESSO (grupo removido): onError com SecurityException —
+     *    a Activity exibe a mensagem real ao usuário.
+     *  - FALHA TRANSITÓRIA (timeout, rede): log + onSuccess — dado local preservado,
+     *    nova tentativa ocorre no próximo onResume/onCreate.
+     */
     public void sincronizar(RetornoRepositorio<Void> retorno) {
-        br.com.meu_controle.dados.remoto.SincronizadorContas.sincronizar((sucesso, mensagem) -> {
-            if (sucesso) retorno.onSuccess(null);
-            else retorno.onError(new IllegalStateException(mensagem));
-        });
+        try {
+            br.com.meu_controle.dados.remoto.SincronizadorContas.sincronizar(
+                    new br.com.meu_controle.dados.remoto.SincronizadorContas.Retorno() {
+                        @Override
+                        public void aoConcluir(boolean sucesso, String mensagem) {
+                            if (sucesso) {
+                                Log.d(TAG, "Sincronização: " + mensagem);
+                            } else {
+                                Log.w(TAG, "Falha transitória: " + mensagem
+                                        + " (dados locais preservados).");
+                            }
+                            retorno.onSuccess(null);
+                        }
+
+                        @Override
+                        public void aoBloquearAcesso(String motivo) {
+                            Log.w(TAG, "Acesso ao grupo revogado: " + motivo);
+                            retorno.onError(new SecurityException(motivo));
+                        }
+                    });
+        } catch (RuntimeException e) {
+            Log.e(TAG, "Sincronização indisponível; seguindo em modo offline.", e);
+            retorno.onSuccess(null);
+        }
     }
 
     public void buscarPorConta(long contaId, RetornoRepositorio<Lembrete> retorno) {
@@ -152,7 +182,7 @@ public class RepositorioLembretes {
         LocalTime hora = anteriores.isEmpty()
                 ? LocalTime.of(9, 0)
                 : Instant.ofEpochMilli(anteriores.get(0).dataHora)
-                        .atZone(ZoneId.systemDefault()).toLocalTime();
+                .atZone(ZoneId.systemDefault()).toLocalTime();
         reconciliarConta(conta, ativo, hora.getHour(), hora.getMinute());
     }
 
@@ -160,16 +190,50 @@ public class RepositorioLembretes {
         if (conta == null || conta.deleted) {
             return;
         }
-        cancelarEExcluirDaConta(conta.id);
-        Lembrete lembrete = gerarLembreteConta(context, conta, ativo, hora, minuto);
-        if (lembrete != null) {
-            lembrete.updatedAt = System.currentTimeMillis();
-            lembrete.syncPending = lembrete.groupId != null;
-            long id = lembreteDao.inserir(lembrete);
-            lembrete.id = id;
-            scheduler.scheduleNotification(lembrete);
-            sincronizarGrupoSeNecessario(lembrete);
+
+        Lembrete novo = gerarLembreteConta(context, conta, ativo, hora, minuto);
+        List<Lembrete> existentes = lembreteDao.buscarPorConta(conta.id);
+
+        // Conta que não gera lembrete (data inválida, por exemplo): remove o que existir
+        if (novo == null) {
+            cancelarEExcluirDaConta(conta.id);
+            return;
         }
+
+        long agora = System.currentTimeMillis();
+
+        if (existentes.isEmpty()) {
+            novo.updatedAt = agora;
+            novo.syncPending = novo.groupId != null;
+            novo.id = lembreteDao.inserir(novo);
+            scheduler.scheduleNotification(novo);
+            sincronizarGrupoSeNecessario(novo);
+            return;
+        }
+
+        // contaId é único na tabela (inclusive para lembretes de grupo marcados como
+        // excluídos): atualiza a linha existente em vez de excluir e inserir de novo
+        Lembrete atual = existentes.get(0);
+        scheduler.cancelNotification(atual.id);
+
+        atual.titulo = novo.titulo;
+        atual.mensagem = novo.mensagem;
+        atual.dataHora = novo.dataHora;
+        atual.data = novo.data;
+        atual.hora = novo.hora;
+        atual.ativo = novo.ativo;
+        atual.notificado = false;
+        atual.deleted = false;
+        atual.ownerEmail = novo.ownerEmail;
+        atual.groupId = novo.groupId;
+        atual.createdByName = novo.createdByName;
+        atual.contaRemoteId = novo.contaRemoteId;
+        atual.updatedAt = agora;
+        atual.syncPending = atual.groupId != null;
+
+        lembreteDao.atualizar(atual);
+        scheduler.scheduleNotification(atual);
+        sincronizarGrupoSeNecessario(atual);
     }
 
     public void excluirPorConta(long contaId) {
@@ -219,14 +283,23 @@ public class RepositorioLembretes {
         }
     }
 
+    /**
+     * RNF03: sincronização pós-CRUD não pode derrubar a operação local.
+     * Qualquer falha remota é logada e ignorada — o registro já está no Room.
+     */
     private void sincronizarGrupoSeNecessario(Lembrete lembrete) {
-        if (lembrete.groupId != null) {
+        if (lembrete == null || lembrete.groupId == null) {
+            return;
+        }
+        try {
             br.com.meu_controle.dados.remoto.SincronizadorContas.sincronizar();
+        } catch (RuntimeException e) {
+            Log.w(TAG, "Sincronização pós-CRUD falhou; operação local preservada.", e);
         }
     }
 
     public static Lembrete gerarLembreteConta(Context context, Conta conta, boolean ativo,
-                                               int hora, int minuto) {
+                                              int hora, int minuto) {
         if (!deveGerarLembretes(conta) || hora < 0 || hora > 23
                 || minuto < 0 || minuto > 59) {
             return null;
