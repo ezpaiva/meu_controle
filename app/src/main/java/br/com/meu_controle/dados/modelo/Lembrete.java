@@ -2,6 +2,7 @@ package br.com.meu_controle.dados.modelo;
 
 import androidx.room.Entity;
 import androidx.room.ForeignKey;
+import androidx.room.Ignore;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
 import androidx.annotation.NonNull;
@@ -43,6 +44,9 @@ public class Lembrete {
     public long updatedAt;
     public boolean syncPending;
     public boolean deleted;
+
+    @Ignore
+    public Lembrete() { }
 
     public Lembrete(@NonNull String titulo, @NonNull String mensagem, long dataHora, boolean ativo,
                     Long contaId, long criadoEm, boolean notificado, String ownerEmail) {

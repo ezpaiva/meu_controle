@@ -2,11 +2,13 @@ package br.com.meu_controle.dados.modelo;
 
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
+import androidx.room.Ignore;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
 import java.io.Serializable;
 import java.util.UUID;
+
 
 @Entity(tableName = "accounts", indices = {@Index(value = {"type", "dueDate"})})
 public class Conta implements Serializable {
@@ -35,6 +37,9 @@ public class Conta implements Serializable {
 
     @ColumnInfo(defaultValue = "0")
     public boolean deleted;
+
+    @Ignore
+    public Conta() { }
 
     public Conta(String description, long amountInCents, String dueDate,
                  String category, String type, String status,
