@@ -112,6 +112,21 @@
                 app:strokeColor="@color/payables_accent" />
         </com.google.android.material.button.MaterialButtonToggleGroup>
 
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="24dp"
+            android:layout_marginTop="12dp"
+            android:hint="Buscar categoria">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/category_search_input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:singleLine="true" />
+        </com.google.android.material.textfield.TextInputLayout>
+
         <!-- BOTÃO + NOVA CATEGORIA -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/new_categoria_button"

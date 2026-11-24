@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-import br.com.meu_controle.dados.local.BancoDados;
 import br.com.meu_controle.dados.local.SessaoUsuario;
 import br.com.meu_controle.dados.modelo.Conta;
 import br.com.meu_controle.dados.modelo.Lembrete;
@@ -44,6 +43,7 @@ import br.com.meu_controle.telas.LembretesActivity;
 import br.com.meu_controle.utilitarios.FormatoFinanceiro;
 import br.com.meu_controle.utilitarios.NavegacaoInferior;
 import br.com.meu_controle.viewmodels.LembreteViewModel;
+import br.com.meu_controle.viewmodels.FinancasViewModel;
 import br.com.meu_controle.viewmodels.SincronizacaoViewModel;
 
 public class CalendarioActivity extends AppCompatActivity {
@@ -55,7 +55,7 @@ public class CalendarioActivity extends AppCompatActivity {
             DateTimeFormatter.ofPattern("dd/MM", PT_BR);
 
     private SessaoUsuario sessao;
-    private RepositorioContas repositorio;
+    private FinancasViewModel financasViewModel;
     private LembreteViewModel lembreteViewModel;
     private SincronizacaoViewModel sincronizacaoViewModel;
     private final Map<LocalDate, List<Lembrete>> lembretesPorData = new HashMap<>();
@@ -86,8 +86,7 @@ public class CalendarioActivity extends AppCompatActivity {
         setContentView(R.layout.activity_calendario);
 
         sessao = new SessaoUsuario(this);
-        repositorio = new RepositorioContas(
-                BancoDados.obterInstancia(getApplicationContext()).contaDao());
+        financasViewModel = new ViewModelProvider(this).get(FinancasViewModel.class);
         sincronizacaoViewModel = new ViewModelProvider(this)
                 .get(SincronizacaoViewModel.class);
         lembreteViewModel = new ViewModelProvider(this).get(LembreteViewModel.class);
@@ -147,7 +146,7 @@ public class CalendarioActivity extends AppCompatActivity {
 
     // ---------- Dados ----------
     private void carregarContas() {
-        repositorio.buscarTodas(sessao.obterEmail(), sessao.perfilFamiliar(), sessao.obterGrupoId(),
+        financasViewModel.buscarTodas(sessao.obterEmail(), sessao.perfilFamiliar(), sessao.obterGrupoId(),
                 new RetornoRepositorio<List<Conta>>() {
                     @Override
                     public void onSuccess(List<Conta> contas) {

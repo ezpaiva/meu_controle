@@ -3,6 +3,8 @@ package br.com.meu_controle.telas;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AdapterView;
@@ -29,27 +31,24 @@ import br.com.meu_controle.CalendarioActivity;
 import br.com.meu_controle.MainActivity;
 import br.com.meu_controle.PerfilActivity;
 import br.com.meu_controle.R;
-import br.com.meu_controle.dados.local.BancoDados;
 import br.com.meu_controle.dados.local.SessaoUsuario;
 import br.com.meu_controle.dados.modelo.Categoria;
 import br.com.meu_controle.dados.modelo.Conta;
 import br.com.meu_controle.dados.modelo.TipoConta;
-import br.com.meu_controle.dados.repositorio.RepositorioCategorias;
-import br.com.meu_controle.dados.repositorio.RepositorioContas;
-import br.com.meu_controle.dados.repositorio.RepositorioLembretes;
 import br.com.meu_controle.dados.repositorio.RetornoRepositorio;
 import br.com.meu_controle.utilitarios.FiltroContas;
 import br.com.meu_controle.utilitarios.FormatoFinanceiro;
 import br.com.meu_controle.utilitarios.NavegacaoInferior;
+import br.com.meu_controle.utilitarios.BuscaGlobal;
 import br.com.meu_controle.viewmodels.SincronizacaoViewModel;
+import br.com.meu_controle.viewmodels.FinancasViewModel;
 
 public class ListaContas extends AppCompatActivity {
 
     public static final String EXTRA_TIPO_CONTA = "tipo_conta";
 
     private String tipoConta;
-    private RepositorioContas repositorio;
-    private RepositorioCategorias repositorioCategorias;
+    private FinancasViewModel financasViewModel;
     private LinearLayout listaContas;
     private TextView mensagemVazia;
     private MaterialCardView cartaoResumo;
@@ -67,6 +66,7 @@ public class ListaContas extends AppCompatActivity {
     private final List<String> categoriasCadastradas = new ArrayList<>();
     private final List<String> opcoesFiltro = new ArrayList<>();
     private String categoriaFiltro = null; // null = todas as categorias
+    private String buscaTexto = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,14 +82,11 @@ public class ListaContas extends AppCompatActivity {
         sessao = new SessaoUsuario(this);
         sincronizacaoViewModel = new ViewModelProvider(this)
                 .get(SincronizacaoViewModel.class);
+        financasViewModel = new ViewModelProvider(this).get(FinancasViewModel.class);
 
         atualizarEspacoAtivo();
         configurarNavegacaoInferior();
 
-        BancoDados bancoDados = BancoDados.obterInstancia(getApplicationContext());
-        repositorio = new RepositorioContas(bancoDados.contaDao(),
-                new RepositorioLembretes(getApplicationContext()));
-        repositorioCategorias = new RepositorioCategorias(bancoDados.categoriaDao());
 
         listaContas = findViewById(R.id.accounts_container);
         mensagemVazia = findViewById(R.id.empty_accounts_message);
@@ -109,12 +106,22 @@ public class ListaContas extends AppCompatActivity {
         configurarFiltros();
 
         botaoNovaConta.setOnClickListener(view -> abrirNovaConta());
+        com.google.android.material.textfield.TextInputEditText busca =
+                findViewById(R.id.account_search_input);
+        busca.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                buscaTexto = s.toString();
+                exibirContas();
+            }
+            @Override public void afterTextChanged(Editable s) {}
+        });
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if (repositorio != null) {
+        if (financasViewModel != null) {
             atualizarEspacoAtivo();
             carregarCategorias();
             carregarContas();
@@ -188,7 +195,7 @@ public class ListaContas extends AppCompatActivity {
     private void carregarCategorias() {
         if (exibindoReceitas) return;
 
-        repositorioCategorias.buscarPorTipo(tipoConta, sessao.obterEmail(),
+        financasViewModel.buscarCategorias(tipoConta, sessao.obterEmail(),
                 sessao.perfilFamiliar(), sessao.obterGrupoId(),
                 new RetornoRepositorio<List<Categoria>>() {
                     @Override
@@ -250,7 +257,7 @@ public class ListaContas extends AppCompatActivity {
     }
 
     private void carregarContas() {
-        repositorio.buscarPorTipo(tipoConta, sessao.obterEmail(), sessao.perfilFamiliar(),
+        financasViewModel.buscarPorTipo(tipoConta, sessao.obterEmail(), sessao.perfilFamiliar(),
                 sessao.obterGrupoId(), new RetornoRepositorio<List<Conta>>() {
                     @Override
                     public void onSuccess(List<Conta> contas) {
@@ -270,6 +277,7 @@ public class ListaContas extends AppCompatActivity {
     /** Desenha a lista aplicando o filtro de categoria às contas já carregadas. */
     private void exibirContas() {
         List<Conta> contas = FiltroContas.porCategoria(todasContas, categoriaFiltro);
+        contas = BuscaGlobal.filtrarContas(contas, buscaTexto);
 
         listaContas.removeAllViews();
         mensagemVazia.setText(todasContas.isEmpty() || categoriaFiltro == null
@@ -329,7 +337,7 @@ public class ListaContas extends AppCompatActivity {
                     .setTitle("Excluir")
                     .setMessage("Deseja excluir '" + conta.description + "'?")
                     .setPositiveButton("Sim", (dialog, which) -> {
-                        repositorio.excluir(conta.id, new RetornoRepositorio<Void>() {
+                        financasViewModel.excluirConta(conta.id, new RetornoRepositorio<Void>() {
                             @Override
                             public void onSuccess(Void result) {
                                 carregarContas();

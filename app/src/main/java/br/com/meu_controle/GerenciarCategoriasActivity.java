@@ -2,6 +2,8 @@ package br.com.meu_controle;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
@@ -11,6 +13,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.button.MaterialButton;
@@ -18,23 +21,25 @@ import com.google.android.material.button.MaterialButtonToggleGroup;
 
 import java.util.List;
 
-import br.com.meu_controle.dados.local.BancoDados;
 import br.com.meu_controle.dados.local.SessaoUsuario;
 import br.com.meu_controle.dados.modelo.Categoria;
 import br.com.meu_controle.dados.modelo.TipoConta;
-import br.com.meu_controle.dados.repositorio.RepositorioCategorias;
 import br.com.meu_controle.dados.repositorio.RetornoRepositorio;
 import br.com.meu_controle.telas.ListaContas;
 import br.com.meu_controle.utilitarios.NavegacaoInferior;
+import br.com.meu_controle.viewmodels.FinancasViewModel;
+import br.com.meu_controle.utilitarios.BuscaGlobal;
 
 public class GerenciarCategoriasActivity extends AppCompatActivity {
 
     private SessaoUsuario sessao;
-    private RepositorioCategorias repositorio;
+    private FinancasViewModel financasViewModel;
     private LinearLayout listaCategorias;
     private TextView mensagemVazia;
 
     private String tipoAtual = TipoConta.PAGAR; // aba inicial: Despesas
+    private String buscaTexto = "";
+    private final java.util.List<Categoria> todasCategorias = new java.util.ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,8 +47,7 @@ public class GerenciarCategoriasActivity extends AppCompatActivity {
         setContentView(R.layout.activity_gerenciar_categorias);
 
         sessao = new SessaoUsuario(this);
-        repositorio = new RepositorioCategorias(
-                BancoDados.obterInstancia(getApplicationContext()).categoriaDao());
+        financasViewModel = new ViewModelProvider(this).get(FinancasViewModel.class);
 
         listaCategorias = findViewById(R.id.categorias_container);
         mensagemVazia = findViewById(R.id.empty_categorias_message);
@@ -58,12 +62,22 @@ public class GerenciarCategoriasActivity extends AppCompatActivity {
 
         findViewById(R.id.new_categoria_button)
                 .setOnClickListener(v -> abrirDialogCategoria(null));
+        com.google.android.material.textfield.TextInputEditText busca =
+                findViewById(R.id.category_search_input);
+        busca.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                buscaTexto = s.toString();
+                renderizar(BuscaGlobal.filtrarCategorias(todasCategorias, buscaTexto));
+            }
+            @Override public void afterTextChanged(Editable s) {}
+        });
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if (repositorio != null) {
+        if (financasViewModel != null) {
             carregarCategorias();
         }
     }
@@ -109,12 +123,14 @@ public class GerenciarCategoriasActivity extends AppCompatActivity {
     }
 
     private void carregarCategorias() {
-        repositorio.buscarPorTipo(tipoAtual, sessao.obterEmail(), sessao.perfilFamiliar(),
+        financasViewModel.buscarCategorias(tipoAtual, sessao.obterEmail(), sessao.perfilFamiliar(),
                 sessao.obterGrupoId(),
                 new RetornoRepositorio<List<Categoria>>() {
                     @Override
                     public void onSuccess(List<Categoria> categorias) {
-                        renderizar(categorias);
+                        todasCategorias.clear();
+                        todasCategorias.addAll(categorias);
+                        renderizar(BuscaGlobal.filtrarCategorias(todasCategorias, buscaTexto));
                     }
                     @Override
                     public void onError(Exception error) {
@@ -176,7 +192,7 @@ public class GerenciarCategoriasActivity extends AppCompatActivity {
                     }
                     if (editando) {
                         categoriaExistente.nome = nome;
-                        repositorio.atualizar(categoriaExistente, new RetornoRepositorio<Void>() {
+                        financasViewModel.atualizarCategoria(categoriaExistente, new RetornoRepositorio<Void>() {
                             @Override public void onSuccess(Void r) {
                                 dialog.dismiss();
                                 carregarCategorias();
@@ -191,7 +207,7 @@ public class GerenciarCategoriasActivity extends AppCompatActivity {
                     } else {
                         Categoria nova = new Categoria(nome, tipoAtual, sessao.obterEmail());
                         nova.groupId = sessao.perfilFamiliar() ? sessao.obterGrupoId() : null;
-                        repositorio.inserir(nova, new RetornoRepositorio<Long>() {
+                        financasViewModel.inserirCategoria(nova, new RetornoRepositorio<Long>() {
                             @Override public void onSuccess(Long id) {
                                 dialog.dismiss();
                                 carregarCategorias();
@@ -214,7 +230,7 @@ public class GerenciarCategoriasActivity extends AppCompatActivity {
                 .setTitle("Excluir categoria")
                 .setMessage("Deseja excluir '" + categoria.nome + "'?")
                 .setPositiveButton("Sim", (d, which) ->
-                        repositorio.excluir(categoria, new RetornoRepositorio<Void>() {
+                        financasViewModel.excluirCategoria(categoria, new RetornoRepositorio<Void>() {
                             @Override public void onSuccess(Void r) {
                                 carregarCategorias();
                                 Toast.makeText(GerenciarCategoriasActivity.this,

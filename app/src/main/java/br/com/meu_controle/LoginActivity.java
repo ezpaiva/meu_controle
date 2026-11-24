@@ -28,6 +28,7 @@ import br.com.meu_controle.dados.repositorio.GrupoFamiliarRepository;
 import br.com.meu_controle.dados.repositorio.PerfilUsuarioRepository;
 import br.com.meu_controle.utilitarios.ErrosAutenticacao;
 import br.com.meu_controle.viewmodels.PerfilUsuarioViewModel;
+import br.com.meu_controle.viewmodels.GrupoFamiliarViewModel;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -36,12 +37,14 @@ public class LoginActivity extends AppCompatActivity {
     private EditText editSenha;
     private MaterialButton btnEntrar;
     private PerfilUsuarioViewModel perfilViewModel;
+    private GrupoFamiliarViewModel grupoViewModel;
     private boolean verificandoConvites;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         perfilViewModel = new ViewModelProvider(this).get(PerfilUsuarioViewModel.class);
+        grupoViewModel = new ViewModelProvider(this).get(GrupoFamiliarViewModel.class);
 
         FirebaseUser sessaoAtual = FirebaseAuth.getInstance().getCurrentUser();
         if (sessaoAtual != null && !new SessaoUsuario(this).obterEmail().isEmpty()) {
@@ -132,7 +135,7 @@ public class LoginActivity extends AppCompatActivity {
     private void abrirTelaInicial() {
         if (verificandoConvites) return;
         verificandoConvites = true;
-        new GrupoFamiliarRepository(getApplicationContext()).listarConvitesPendentes(
+        grupoViewModel.listarConvites(
                 new GrupoFamiliarRepository.RetornoConvites() {
                     @Override
                     public void onSuccess(java.util.List<ConviteFamiliar> convites) {
@@ -164,7 +167,7 @@ public class LoginActivity extends AppCompatActivity {
                 .setTitle(R.string.family_invite_pending_title)
                 .setMessage(getString(R.string.family_invite_pending_message, remetente, grupo))
                 .setPositiveButton(R.string.family_invite_accept, (dialog, which) ->
-                        new GrupoFamiliarRepository(getApplicationContext()).aceitarConvite(
+                        grupoViewModel.aceitarConvite(
                                 convite, new GrupoFamiliarRepository.RetornoGrupo() {
                                     @Override
                                     public void onSuccess(GrupoFamiliar group,
@@ -187,7 +190,7 @@ public class LoginActivity extends AppCompatActivity {
                                     }
                                 }))
                 .setNegativeButton(R.string.family_invite_decline, (dialog, which) ->
-                        new GrupoFamiliarRepository(getApplicationContext()).recusarConvite(
+                        grupoViewModel.recusarConvite(
                                 convite,
                                 () -> processarConvites(convites, indice + 1),
                                 error -> {

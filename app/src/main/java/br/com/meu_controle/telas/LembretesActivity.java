@@ -5,6 +5,8 @@ import android.app.TimePickerDialog;
 import android.os.Bundle;
 import android.text.InputType;
 import android.util.Log;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
@@ -32,6 +34,7 @@ import br.com.meu_controle.dados.modelo.Lembrete;
 import br.com.meu_controle.dados.modelo.LembreteComConta;
 import br.com.meu_controle.dados.repositorio.RetornoRepositorio;
 import br.com.meu_controle.viewmodels.LembreteViewModel;
+import br.com.meu_controle.utilitarios.BuscaGlobal;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -53,6 +56,7 @@ public class LembretesActivity extends AppCompatActivity implements LembreteAdap
     private String groupId;
     private boolean mostrarConcluidos;
     private List<LembreteComConta> todos = new ArrayList<>();
+    private String buscaTexto = "";
 
     /** Snackbar ativo, para garantir que só exista um por vez e para dispensá-lo ao sair. */
     private Snackbar snackbarAtual;
@@ -104,6 +108,16 @@ public class LembretesActivity extends AppCompatActivity implements LembreteAdap
         filtroConcluidos.setOnClickListener(view -> {
             mostrarConcluidos = true;
             atualizarLista();
+        });
+        com.google.android.material.textfield.TextInputEditText busca =
+                findViewById(R.id.reminder_search_input);
+        busca.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                buscaTexto = s.toString();
+                atualizarLista();
+            }
+            @Override public void afterTextChanged(Editable s) {}
         });
 
         FloatingActionButton adicionar = findViewById(R.id.reminders_add);
@@ -230,6 +244,7 @@ public class LembretesActivity extends AppCompatActivity implements LembreteAdap
                 filtrados.add(item);
             }
         }
+        filtrados = BuscaGlobal.filtrarLembretes(filtrados, buscaTexto);
         adapter.definirLembretes(filtrados);
         mensagemVazia.setText(mostrarConcluidos
                 ? R.string.reminders_empty_completed : R.string.reminders_empty_active);

@@ -77,8 +77,9 @@ public class EditarPerfilNavigationTest {
             assertNotNull(editorActivity);
             instrumentation.runOnMainSync(() -> {
                 assertTrue(editorActivity.findViewById(R.id.profile_name_input).isShown());
-                assertTrue(editorActivity.findViewById(R.id.profile_email_input).isShown());
                 assertTrue(editorActivity.findViewById(R.id.profile_save_button).isShown());
+                assertTrue(editorActivity.findViewById(R.id.profile_change_email_button).isShown());
+                assertTrue(editorActivity.findViewById(R.id.profile_delete_account_button).isShown());
                 MaterialToolbar toolbar = editorActivity.findViewById(R.id.edit_profile_toolbar);
                 assertNotNull(toolbar.getNavigationIcon());
                 assertNotNull(toolbar.getNavigationContentDescription());

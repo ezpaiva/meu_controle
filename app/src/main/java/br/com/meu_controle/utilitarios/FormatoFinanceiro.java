@@ -19,6 +19,9 @@ public final class FormatoFinanceiro {
     }
 
     public static long parseAmountToCents(String text) {
+        if (text == null) {
+            throw new IllegalArgumentException("Valor fora do formato aceito.");
+        }
         String normalized = text.trim().replace(" ", "");
         if (normalized.contains(",")) {
             normalized = normalized.replace(".", "").replace(',', '.');

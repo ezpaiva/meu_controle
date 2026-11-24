@@ -327,28 +327,6 @@
                     android:background="@color/gray_border" />
             </LinearLayout>
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_change_login_email"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:text="@string/change_login_email"
-                android:textAllCaps="false" />
-
-            <!-- BOTÃO EXCLUIR CONTA CORRIGIDO -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_delete_account"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:minHeight="48dp"
-                android:text="Excluir Conta"
-                android:textAllCaps="false"
-                android:textColor="@color/payables_accent"
-                android:textSize="14sp"
-                app:cornerRadius="8dp"
-                app:strokeColor="@color/payables_accent" />
-
             <!-- Botão Sair -->
             <TextView
                 android:id="@+id/logout_button"

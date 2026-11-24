@@ -12,7 +12,9 @@ import java.util.List;
 
 import br.com.meu_controle.dados.modelo.GrupoFamiliar;
 import br.com.meu_controle.dados.modelo.Usuario;
+import br.com.meu_controle.dados.modelo.Conta;
 import br.com.meu_controle.dados.repositorio.GrupoFamiliarRepository;
+import br.com.meu_controle.dados.modelo.ConviteFamiliar;
 
 public class GrupoFamiliarViewModel extends AndroidViewModel {
 
@@ -49,6 +51,25 @@ public class GrupoFamiliarViewModel extends AndroidViewModel {
 
     public void sairDoGrupo() {
         executar(() -> repository.sairDoGrupo(retorno("Você saiu do grupo familiar.")));
+    }
+
+    public void criarGrupo(String nome, Conta primeiraConta,
+                           GrupoFamiliarRepository.RetornoGrupo retorno) {
+        executar(() -> repository.criarGrupo(nome, primeiraConta, retorno));
+    }
+
+    public void listarConvites(GrupoFamiliarRepository.RetornoConvites retorno) {
+        repository.listarConvitesPendentes(retorno);
+    }
+
+    public void aceitarConvite(ConviteFamiliar convite,
+                               GrupoFamiliarRepository.RetornoGrupo retorno) {
+        executar(() -> repository.aceitarConvite(convite, retorno));
+    }
+
+    public void recusarConvite(ConviteFamiliar convite, Runnable sucesso,
+                               java.util.function.Consumer<Exception> falha) {
+        repository.recusarConvite(convite, sucesso, falha);
     }
 
     private void executar(Runnable operacao) {

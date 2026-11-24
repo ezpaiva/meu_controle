@@ -28,13 +28,13 @@ import br.com.meu_controle.dados.repositorio.RepositorioLembretes;
 import br.com.meu_controle.utilitarios.NavegacaoInferior;
 import br.com.meu_controle.viewmodels.ContaUsuarioViewModel;
 import br.com.meu_controle.viewmodels.GrupoFamiliarViewModel;
+import br.com.meu_controle.viewmodels.LembreteViewModel;
 
 public class PerfilActivity extends AppCompatActivity {
     private SessaoUsuario sessao;
     private LinearLayout listaMembros;
-    private RepositorioLembretes repositorioLembretes;
     private GrupoFamiliarViewModel grupoViewModel;
-    private ContaUsuarioViewModel contaUsuarioViewModel;
+    private LembreteViewModel lembreteViewModel;
     private MaterialButton adicionarMembro;
     private MaterialButton sairGrupo;
     private TextView nomeGrupo;
@@ -47,10 +47,8 @@ public class PerfilActivity extends AppCompatActivity {
         setContentView(R.layout.activity_perfil);
 
         sessao = new SessaoUsuario(this);
-        repositorioLembretes = new RepositorioLembretes(getApplicationContext());
         grupoViewModel = new ViewModelProvider(this).get(GrupoFamiliarViewModel.class);
-        contaUsuarioViewModel = new ViewModelProvider(this)
-                .get(ContaUsuarioViewModel.class);
+        lembreteViewModel = new ViewModelProvider(this).get(LembreteViewModel.class);
 
         // Preenche os dados
         ((TextView) findViewById(R.id.profile_space_name)).setText(sessao.perfilFamiliar() ? "Família" : "Meu espaço individual");
@@ -102,20 +100,16 @@ public class PerfilActivity extends AppCompatActivity {
         notificacoes.setOnCheckedChangeListener((button, habilitadas) -> {
             sessao.setNotificationsEnabled(habilitadas);
             if (habilitadas) {
-                repositorioLembretes.reagendarPendentes(
+                lembreteViewModel.reagendarPendentes(
                         sessao.obterEmail(), sessao.obterGrupoId());
             } else {
-                repositorioLembretes.cancelarTodos(
+                lembreteViewModel.cancelarTodos(
                         sessao.obterEmail(), sessao.obterGrupoId());
             }
         });
 
         findViewById(R.id.btn_editar_perfil).setOnClickListener(v ->
                 startActivity(new Intent(this, EditarPerfilActivity.class)));
-        findViewById(R.id.btn_change_login_email).setOnClickListener(v ->
-                mostrarDialogAlterarEmail());
-        findViewById(R.id.btn_delete_account).setOnClickListener(v ->
-                confirmarExclusaoConta());
         configurarNavegacaoInferior();
     }
 
@@ -261,153 +255,6 @@ public class PerfilActivity extends AppCompatActivity {
                         grupoViewModel.sairDoGrupo())
                 .setNegativeButton(android.R.string.cancel, null)
                 .show();
-    }
-
-    private void mostrarDialogAlterarEmail() {
-        LinearLayout campos = new LinearLayout(this);
-        campos.setOrientation(LinearLayout.VERTICAL);
-        int margem = Math.round(24 * getResources().getDisplayMetrics().density);
-        campos.setPadding(margem, 0, margem, 0);
-        EditText novoEmail = new EditText(this);
-        novoEmail.setSingleLine(true);
-        novoEmail.setInputType(InputType.TYPE_CLASS_TEXT
-                | InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
-        novoEmail.setHint(R.string.change_email_new);
-        EditText senha = new EditText(this);
-        senha.setSingleLine(true);
-        senha.setInputType(InputType.TYPE_CLASS_TEXT
-                | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        senha.setHint(R.string.change_email_password);
-        campos.addView(novoEmail);
-        campos.addView(senha);
-
-        AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle(R.string.change_login_email)
-                .setView(campos)
-                .setPositiveButton(android.R.string.ok, null)
-                .setNegativeButton(android.R.string.cancel, null)
-                .create();
-        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-                .setOnClickListener(v -> {
-                    String email = novoEmail.getText().toString().trim();
-                    String password = senha.getText().toString();
-                    if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                        novoEmail.setError(getString(R.string.error_email));
-                        return;
-                    }
-                    if (password.isEmpty()) {
-                        senha.setError(getString(R.string.change_email_password));
-                        return;
-                    }
-                    new AlertDialog.Builder(this)
-                            .setTitle(R.string.change_email_confirm_title)
-                            .setMessage(R.string.change_email_confirm_message)
-                            .setPositiveButton(R.string.action_confirm,
-                                    (confirmacao, which) -> alterarEmail(email, password))
-                            .setNegativeButton(android.R.string.cancel, null)
-                            .show();
-                    dialog.dismiss();
-                }));
-        dialog.show();
-    }
-
-    private void alterarEmail(String novoEmail, String senha) {
-        View botao = findViewById(R.id.btn_change_login_email);
-        botao.setEnabled(false);
-        contaUsuarioViewModel.alterarEmail(
-                novoEmail, senha, new ContaUsuarioRepository.Retorno() {
-                    @Override
-                    public void onSuccess() {
-                        FirebaseAuth.getInstance().signOut();
-                        sessao.sair();
-                        Toast.makeText(PerfilActivity.this, R.string.change_email_success,
-                                Toast.LENGTH_LONG).show();
-                        abrirLogin();
-                    }
-
-                    @Override
-                    public void onError(Exception error) {
-                        botao.setEnabled(true);
-                        android.util.Log.e("PerfilActivity", "Falha ao alterar e-mail.", error);
-                        Toast.makeText(PerfilActivity.this,
-                                error.getMessage() == null
-                                        ? getString(R.string.change_email_error)
-                                        : error.getMessage(),
-                                Toast.LENGTH_LONG).show();
-                    }
-                });
-    }
-
-    private void confirmarExclusaoConta() {
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.delete_account_confirm_title)
-                .setMessage(R.string.delete_account_confirm_message)
-                .setPositiveButton(android.R.string.yes, (dialog, which) ->
-                        pedirConfirmacaoFinalExclusao())
-                .setNegativeButton(android.R.string.no, null)
-                .show();
-    }
-
-    private void pedirConfirmacaoFinalExclusao() {
-        LinearLayout campos = new LinearLayout(this);
-        campos.setOrientation(LinearLayout.VERTICAL);
-        int margem = Math.round(24 * getResources().getDisplayMetrics().density);
-        campos.setPadding(margem, 0, margem, 0);
-        EditText palavra = new EditText(this);
-        palavra.setSingleLine(true);
-        palavra.setHint(R.string.delete_account_type_word);
-        EditText senha = new EditText(this);
-        senha.setSingleLine(true);
-        senha.setInputType(InputType.TYPE_CLASS_TEXT
-                | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        senha.setHint(R.string.delete_account_password);
-        campos.addView(palavra);
-        campos.addView(senha);
-        AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle(R.string.delete_account_confirm_title)
-                .setView(campos)
-                .setPositiveButton(R.string.delete_account, null)
-                .setNegativeButton(android.R.string.cancel, null)
-                .create();
-        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-                .setOnClickListener(v -> {
-                    if (!"EXCLUIR".equals(palavra.getText().toString().trim())) {
-                        palavra.setError(getString(R.string.delete_account_type_word));
-                        return;
-                    }
-                    if (senha.getText().toString().isEmpty()) {
-                        senha.setError(getString(R.string.delete_account_password));
-                        return;
-                    }
-                    dialog.dismiss();
-                    excluirConta(senha.getText().toString());
-                }));
-        dialog.show();
-    }
-
-    private void excluirConta(String senha) {
-        View botao = findViewById(R.id.btn_delete_account);
-        botao.setEnabled(false);
-        contaUsuarioViewModel.excluirConta(
-                senha, new ContaUsuarioRepository.Retorno() {
-                    @Override
-                    public void onSuccess() {
-                        Toast.makeText(PerfilActivity.this, R.string.delete_account_success,
-                                Toast.LENGTH_LONG).show();
-                        abrirLogin();
-                    }
-
-                    @Override
-                    public void onError(Exception error) {
-                        botao.setEnabled(true);
-                        android.util.Log.e("PerfilActivity", "Falha ao excluir conta.", error);
-                        Toast.makeText(PerfilActivity.this,
-                                error.getMessage() == null
-                                        ? getString(R.string.delete_account_error)
-                                        : error.getMessage(),
-                                Toast.LENGTH_LONG).show();
-                    }
-                });
     }
 
     private void abrirLogin() {

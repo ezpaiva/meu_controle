@@ -13,6 +13,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AlertDialog;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.switchmaterial.SwitchMaterial;
 
@@ -24,23 +25,25 @@ import java.util.List;
 import java.util.Locale;
 
 import br.com.meu_controle.R;
-import br.com.meu_controle.dados.local.BancoDados;
 import br.com.meu_controle.dados.local.SessaoUsuario;
 import br.com.meu_controle.dados.modelo.Categoria;
 import br.com.meu_controle.dados.modelo.Conta;
 import br.com.meu_controle.dados.modelo.TipoConta;
-import br.com.meu_controle.dados.repositorio.RepositorioCategorias;
-import br.com.meu_controle.dados.repositorio.RepositorioContas;
-import br.com.meu_controle.dados.repositorio.RepositorioLembretes;
 import br.com.meu_controle.dados.repositorio.GrupoFamiliarRepository;
 import br.com.meu_controle.dados.repositorio.RetornoRepositorio;
 import br.com.meu_controle.utilitarios.FormatoFinanceiro;
+import br.com.meu_controle.utilitarios.ValidadorConta;
+import br.com.meu_controle.viewmodels.FinancasViewModel;
+import br.com.meu_controle.viewmodels.GrupoFamiliarViewModel;
+import br.com.meu_controle.viewmodels.LembreteViewModel;
 
 public class NovaConta extends AppCompatActivity {
 
     private String tipoConta;
     private String dataVencimentoSelecionada;
-    private RepositorioContas repositorio;
+    private FinancasViewModel financasViewModel;
+    private LembreteViewModel lembreteViewModel;
+    private GrupoFamiliarViewModel grupoFamiliarViewModel;
     private EditText campoDescricao;
     private EditText campoValor;
     private TextView campoVencimento;
@@ -52,7 +55,6 @@ public class NovaConta extends AppCompatActivity {
     private com.google.android.material.button.MaterialButton horarioLembrete;
     private int horaLembrete = 9;
     private int minutoLembrete;
-    private RepositorioLembretes repositorioLembretes;
     private boolean carregandoConfiguracaoLembrete;
 
     // Controla edição
@@ -74,9 +76,9 @@ public class NovaConta extends AppCompatActivity {
             contaEditando = (Conta) getIntent().getSerializableExtra("CONTA_EDITAR");
         }
 
-        BancoDados bancoDados = BancoDados.obterInstancia(getApplicationContext());
-        repositorioLembretes = new RepositorioLembretes(getApplicationContext());
-        repositorio = new RepositorioContas(bancoDados.contaDao(), repositorioLembretes);
+        financasViewModel = new ViewModelProvider(this).get(FinancasViewModel.class);
+        lembreteViewModel = new ViewModelProvider(this).get(LembreteViewModel.class);
+        grupoFamiliarViewModel = new ViewModelProvider(this).get(GrupoFamiliarViewModel.class);
 
         // Inicializa componentes
         btnVoltar = findViewById(R.id.btnVoltar);
@@ -143,11 +145,9 @@ public class NovaConta extends AppCompatActivity {
     }
 
     private void configurarListas() {
-        RepositorioCategorias repoCategorias = new RepositorioCategorias(
-                BancoDados.obterInstancia(getApplicationContext()).categoriaDao());
         SessaoUsuario sessao = new SessaoUsuario(this);
 
-        repoCategorias.buscarPorTipo(tipoConta, sessao.obterEmail(), sessao.perfilFamiliar(),
+        financasViewModel.buscarCategorias(tipoConta, sessao.obterEmail(), sessao.perfilFamiliar(),
                 sessao.obterGrupoId(),
                 new RetornoRepositorio<List<Categoria>>() {
                     @Override
@@ -210,7 +210,7 @@ public class NovaConta extends AppCompatActivity {
     private void carregarConfiguracaoLembrete() {
         carregandoConfiguracaoLembrete = true;
         botaoSalvar.setEnabled(false);
-        repositorioLembretes.buscarPorConta(contaEditando.id,
+        lembreteViewModel.buscarPorConta(contaEditando.id,
                 new RetornoRepositorio<br.com.meu_controle.dados.modelo.Lembrete>() {
                     @Override
                     public void onSuccess(br.com.meu_controle.dados.modelo.Lembrete lembrete) {
@@ -263,13 +263,16 @@ public class NovaConta extends AppCompatActivity {
             return;
         }
         String descricao = campoDescricao.getText().toString().trim();
-        if (descricao.isEmpty()) {
+        if (!ValidadorConta.isDescricaoValida(descricao)) {
             campoDescricao.setError(getString(R.string.validation_description));
             return;
         }
 
         long valorEmCentavos;
         try {
+            if (!ValidadorConta.isValorValido(campoValor.getText().toString())) {
+                throw new IllegalArgumentException("Valor invalido.");
+            }
             valorEmCentavos = FormatoFinanceiro.parseAmountToCents(campoValor.getText().toString());
         } catch (IllegalArgumentException error) {
             campoValor.setError(getString(R.string.validation_amount));
@@ -278,6 +281,9 @@ public class NovaConta extends AppCompatActivity {
 
         String vencimento;
         try {
+            if (!ValidadorConta.isDataValida(campoVencimento.getText().toString())) {
+                throw new IllegalArgumentException("Data invalida.");
+            }
             vencimento = FormatoFinanceiro.parseDisplayDate(campoVencimento.getText().toString());
         } catch (IllegalArgumentException error) {
             Toast.makeText(this, R.string.validation_date, Toast.LENGTH_SHORT).show();
@@ -327,7 +333,7 @@ public class NovaConta extends AppCompatActivity {
                     }
                     dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
                     botaoSalvar.setEnabled(false);
-                    new GrupoFamiliarRepository(getApplicationContext()).criarGrupo(nome,
+                    grupoFamiliarViewModel.criarGrupo(nome,
                             primeiraConta,
                             new GrupoFamiliarRepository.RetornoGrupo() {
                                 @Override
@@ -367,7 +373,7 @@ public class NovaConta extends AppCompatActivity {
             contaEditando.category = categoriaSelecionada;
             contaEditando.status = situacao;
 
-            repositorio.atualizar(contaEditando, receberLembrete.isChecked(),
+            financasViewModel.atualizarConta(contaEditando, receberLembrete.isChecked(),
                     horaLembrete, minutoLembrete, new RetornoRepositorio<Void>() {
                 @Override
                 public void onSuccess(Void result) {
@@ -387,7 +393,7 @@ public class NovaConta extends AppCompatActivity {
                     : contaPrecriada;
             novaConta.groupId = sessao.perfilFamiliar() ? sessao.obterGrupoId() : null;
 
-            repositorio.inserir(novaConta, receberLembrete.isChecked(),
+            financasViewModel.inserirConta(novaConta, receberLembrete.isChecked(),
                     horaLembrete, minutoLembrete, new RetornoRepositorio<Long>() {
                 @Override
                 public void onSuccess(Long id) {

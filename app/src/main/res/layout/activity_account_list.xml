@@ -71,6 +71,20 @@
                 android:textSize="28sp"
                 android:textStyle="bold" />
 
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:hint="Buscar por descrição ou categoria">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/account_search_input"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:singleLine="true" />
+            </com.google.android.material.textfield.TextInputLayout>
+
             <!-- Cartão de Resumo -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/accounts_summary_card"

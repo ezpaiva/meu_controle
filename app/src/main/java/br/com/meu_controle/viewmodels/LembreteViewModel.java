@@ -79,4 +79,21 @@ public class LembreteViewModel extends AndroidViewModel {
     public void excluir(Lembrete lembrete, RetornoRepositorio<Void> retorno) {
         repositorio.excluir(lembrete, retorno);
     }
+
+    public void reagendarPendentes(String email, String groupId) {
+        repositorio.reagendarPendentes(email, groupId);
+    }
+
+    public void cancelarTodos(String email, String groupId) {
+        repositorio.cancelarTodos(email, groupId);
+    }
+
+    public void buscarPendentes(String email, String groupId,
+                                RetornoRepositorio<List<Lembrete>> retorno) {
+        repositorio.buscarPendentes(email, groupId, retorno);
+    }
+
+    public void buscarPorConta(long contaId, RetornoRepositorio<Lembrete> retorno) {
+        repositorio.buscarPorConta(contaId, retorno);
+    }
 }
