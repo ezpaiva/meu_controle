@@ -41,4 +41,9 @@
     <color name="status_pending_background">#FFE0B2</color>
     <color name="status_pending_text">#E65100</color>
     <color name="gray_background">#F5F5F5</color>
+    <color name="background">#F8F9FA</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="on_surface">#1A1A1A</color>
+    <color name="surface_variant">#F5F5F5</color>
+    <color name="outline_variant">#D3D3D3</color>
 </resources>

@@ -2,6 +2,7 @@ package br.com.meu_controle.utilitarios;
 
 import br.com.meu_controle.dados.modelo.Conta;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
@@ -49,5 +50,48 @@ public final class FiltroContas {
         }
         opcoes.addAll(usadasSemCadastro);
         return opcoes;
+    }
+
+    public static ResumoFinanceiro preverAte(List<Conta> contas, String dataIso) {
+        long receitas = 0;
+        long despesas = 0;
+        if (contas != null && dataIso != null) {
+            LocalDate limite;
+            try {
+                limite = LocalDate.parse(dataIso);
+            } catch (Exception dataInvalida) {
+                return new ResumoFinanceiro(0, 0);
+            }
+            for (Conta conta : contas) {
+                if (conta == null || conta.dueDate == null) {
+                    continue;
+                }
+                LocalDate vencimento;
+                try {
+                    vencimento = LocalDate.parse(conta.dueDate);
+                } catch (Exception dataInvalida) {
+                    continue;
+                }
+                if (vencimento.isAfter(limite)) continue;
+                if ("RECEBER".equals(conta.type)) {
+                    receitas += conta.amountInCents;
+                } else if ("PAGAR".equals(conta.type)) {
+                    despesas += conta.amountInCents;
+                }
+            }
+        }
+        return new ResumoFinanceiro(receitas, despesas);
+    }
+
+    public static final class ResumoFinanceiro {
+        public final long receitas;
+        public final long despesas;
+        public final long saldo;
+
+        ResumoFinanceiro(long receitas, long despesas) {
+            this.receitas = receitas;
+            this.despesas = despesas;
+            this.saldo = receitas - despesas;
+        }
     }
 }

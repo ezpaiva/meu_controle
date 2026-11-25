@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#F7F9F7</color>
+    <color name="gray_text">#BCC4BC</color>
+    <color name="gray_border">#3A403A</color>
+    <color name="gray_light">#252A25</color>
+    <color name="green_primary">#66BB6A</color>
+    <color name="green_dark">#81C995</color>
+    <color name="green_light_bg">#243327</color>
+    <color name="receivables_accent">#66BB6A</color>
+    <color name="receivables_accent_dark">#81C995</color>
+    <color name="receivables_tab_active_background">#3C7D4A</color>
+    <color name="primary">#90CAF9</color>
+    <color name="primary_dark">#64B5F6</color>
+    <color name="payables_accent">#EF767C</color>
+    <color name="payables_accent_dark">#F29A9F</color>
+    <color name="payables_tab_active_background">#9E454B</color>
+    <color name="status_completed_background">#26382A</color>
+    <color name="status_completed_text">#A5D6A7</color>
+    <color name="status_pending_background">#3A3020</color>
+    <color name="status_pending_text">#FFD18A</color>
+    <color name="nav_inactive">#B8C0B8</color>
+    <color name="receivables_tab_inactive_background">#303530</color>
+    <color name="payables_tab_inactive_background">#303530</color>
+    <color name="receivables_tab_inactive_text">#D0D5D0</color>
+    <color name="payables_tab_inactive_text">#D0D5D0</color>
+    <color name="field_background">#242824</color>
+    <color name="field_stroke">#626862</color>
+    <color name="gray_background">#242824</color>
+    <color name="background">#111411</color>
+    <color name="surface">#1A1E1A</color>
+    <color name="on_surface">#F7F9F7</color>
+    <color name="surface_variant">#242824</color>
+    <color name="outline_variant">#3A403A</color>
+</resources>

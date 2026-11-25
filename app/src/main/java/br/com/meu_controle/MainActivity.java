@@ -15,6 +15,7 @@ import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.datepicker.MaterialDatePicker;
 
 import java.util.List;
 
@@ -32,7 +33,7 @@ import br.com.meu_controle.viewmodels.FinancasViewModel;
 import br.com.meu_controle.viewmodels.LembreteViewModel;
 
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
+import java.time.LocalDate;
 import java.util.Locale;
 import java.util.Date;
 
@@ -49,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView valorDespesas;
     private TextView valorSaldo;
     private PieChartView pieChart;
+    private String dataPrevisaoIso;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,6 +72,13 @@ public class MainActivity extends AppCompatActivity {
         valorDespesas = findViewById(R.id.dashboard_expense);
         valorSaldo = findViewById(R.id.dashboard_balance);
         pieChart = findViewById(R.id.dashboard_pie_chart);
+        dataPrevisaoIso = LocalDate.now().toString();
+        financasViewModel.definirDataSelecionada(dataPrevisaoIso);
+        observarResumoPrevisto();
+        TextView campoData = findViewById(R.id.dashboard_forecast_date);
+        campoData.setOnClickListener(view -> abrirSeletorData());
+        campoData.setFocusable(true);
+        campoData.setClickable(true);
         findViewById(R.id.dashboard_reminders_card).setOnClickListener(view ->
                 startActivity(new Intent(this, br.com.meu_controle.telas.LembretesActivity.class)));
 
@@ -169,50 +178,18 @@ public class MainActivity extends AppCompatActivity {
      * Busca as contas no banco e atualiza os valores do Dashboard e o gráfico
      */
     private void carregarResumo() {
-        // Pega a data de hoje para exibir no protótipo
-        String dataHoje = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Calendar.getInstance().getTime());
         TextView lblData = findViewById(R.id.dashboard_forecast_date);
         TextView lblDataCard = findViewById(R.id.dashboard_forecast_date_label);
-
-        if(lblData != null) lblData.setText(dataHoje);
-        if(lblDataCard != null) lblDataCard.setText("Até " + dataHoje);
+        String dataExibicao = FormatoFinanceiro.formatStoredDate(dataPrevisaoIso);
+        if (lblData != null) lblData.setText(dataExibicao);
+        if (lblDataCard != null) lblDataCard.setText("Até " + dataExibicao);
 
         financasViewModel.buscarTodas(sessao.obterEmail(), sessao.perfilFamiliar(), sessao.obterGrupoId(),
                 new RetornoRepositorio<>() {
                     @Override
                     public void onSuccess(List<Conta> contas) {
-                        long totalReceitas = 0;
-                        long totalDespesas = 0;
-
-                        for (Conta conta : contas) {
-                            if (TipoConta.RECEBER.equals(conta.type)) {
-                                totalReceitas += conta.amountInCents;
-                            } else if (TipoConta.PAGAR.equals(conta.type)) {
-                                totalDespesas += conta.amountInCents;
-                            }
-                        }
-
-                        long saldo = totalReceitas - totalDespesas;
-
-                        valorReceitas.setText(FormatoFinanceiro.formatAmount(totalReceitas));
-                        valorDespesas.setText(FormatoFinanceiro.formatAmount(totalDespesas));
-                        valorSaldo.setText(FormatoFinanceiro.formatAmount(saldo));
-                        valorSaldo.setTextColor(getColor(saldo >= 0 ? R.color.green_primary : R.color.payables_accent));
-
-                        TextView statusSaldo = findViewById(R.id.dashboard_balance_status);
-                        TextView descSaldo = findViewById(R.id.dashboard_balance_desc);
-
-                        if (saldo >= 0) {
-                            statusSaldo.setText("Saldo positivo");
-                            descSaldo.setText("Suas receitas superam as despesas. Você tem uma sobra prevista neste período.");
-                        } else {
-                            statusSaldo.setText("Saldo negativo");
-                            statusSaldo.setTextColor(getColor(R.color.payables_accent));
-                            descSaldo.setText("Suas despesas superam as receitas neste período.");
-                            descSaldo.setTextColor(getColor(R.color.payables_accent));
-                        }
-
-                        pieChart.setData((float) totalReceitas / 100f, (float) totalDespesas / 100f);
+                        financasViewModel.definirDataSelecionada(dataPrevisaoIso);
+                        financasViewModel.calcularResumoPrevisto(contas);
                     }
 
                     @Override
@@ -229,6 +206,46 @@ public class MainActivity extends AppCompatActivity {
         NavegacaoInferior.configurar(this,
                 (BottomNavigationView) findViewById(R.id.bottom_navigation),
                 R.id.nav_dashboard);
+    }
+
+    private void observarResumoPrevisto() {
+        financasViewModel.observarResumoPrevisto().observe(this, resumo -> {
+            if (resumo == null) return;
+            valorReceitas.setText(FormatoFinanceiro.formatAmount(resumo.receitas));
+            valorDespesas.setText(FormatoFinanceiro.formatAmount(resumo.despesas));
+            valorSaldo.setText(FormatoFinanceiro.formatAmount(resumo.saldo));
+            valorSaldo.setTextColor(getColor(resumo.saldo >= 0
+                    ? R.color.green_primary : R.color.payables_accent));
+
+            TextView statusSaldo = findViewById(R.id.dashboard_balance_status);
+            TextView descSaldo = findViewById(R.id.dashboard_balance_desc);
+            if (resumo.saldo >= 0) {
+                statusSaldo.setText("Saldo positivo");
+                statusSaldo.setTextColor(getColor(R.color.green_dark));
+                descSaldo.setText("Suas receitas superam as despesas. Você tem uma sobra prevista neste período.");
+                descSaldo.setTextColor(getColor(R.color.green_dark));
+            } else {
+                statusSaldo.setText("Saldo negativo");
+                statusSaldo.setTextColor(getColor(R.color.payables_accent));
+                descSaldo.setText("Suas despesas superam as receitas neste período.");
+                descSaldo.setTextColor(getColor(R.color.payables_accent));
+            }
+            pieChart.setData((float) resumo.receitas / 100f,
+                    (float) resumo.despesas / 100f);
+        });
+    }
+
+    private void abrirSeletorData() {
+        MaterialDatePicker<Long> picker = MaterialDatePicker.Builder.datePicker()
+                .setTitleText("Data da previsão")
+                .setSelection(FormatoFinanceiro.isoDateToDatePickerMillis(dataPrevisaoIso))
+                .build();
+        picker.addOnPositiveButtonClickListener(selection -> {
+            dataPrevisaoIso = FormatoFinanceiro.datePickerMillisToIsoDate(selection);
+            financasViewModel.definirDataSelecionada(dataPrevisaoIso);
+            carregarResumo();
+        });
+        picker.show(getSupportFragmentManager(), "dashboard_data_previsao");
     }
 
     /**

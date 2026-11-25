@@ -118,4 +118,41 @@ public class FiltroContasTest {
 
         assertEquals(Arrays.asList("Todas categorias", "Saúde", "Lazer"), opcoes);
     }
+
+    @Test
+    public void saldoPrevistoIncluiSomenteContasAteDataSelecionada() {
+        Conta receita = new Conta("Salário", 300000, "2026-12-01", "Salário",
+                TipoConta.RECEBER, TipoConta.PENDENTE, "user@example.com", "User");
+        Conta despesa = new Conta("Aluguel", 100000, "2026-12-10", "Moradia",
+                TipoConta.PAGAR, TipoConta.PENDENTE, "user@example.com", "User");
+
+        FiltroContas.ResumoFinanceiro resumo =
+                FiltroContas.preverAte(Arrays.asList(receita, despesa), "2026-12-05");
+
+        assertEquals(300000, resumo.receitas);
+        assertEquals(0, resumo.despesas);
+        assertEquals(300000, resumo.saldo);
+    }
+
+    @Test
+    public void saldoPrevistoIncluiDespesaNaDataLimite() {
+        Conta receita = new Conta("Salário", 300000, "2026-12-01", "Salário",
+                TipoConta.RECEBER, TipoConta.PENDENTE, "user@example.com", "User");
+        Conta despesa = new Conta("Aluguel", 100000, "2026-12-10", "Moradia",
+                TipoConta.PAGAR, TipoConta.PENDENTE, "user@example.com", "User");
+
+        FiltroContas.ResumoFinanceiro resumo =
+                FiltroContas.preverAte(Arrays.asList(receita, despesa), "2026-12-10");
+
+        assertEquals(300000, resumo.receitas);
+        assertEquals(100000, resumo.despesas);
+        assertEquals(200000, resumo.saldo);
+    }
+
+    @Test
+    public void conversaoDatePickerNaoPerdeDiaEmFusoBrasileiro() {
+        long millis = FormatoFinanceiro.isoDateToDatePickerMillis("2026-11-30");
+        assertEquals("2026-11-30",
+                FormatoFinanceiro.datePickerMillisToIsoDate(millis));
+    }
 }

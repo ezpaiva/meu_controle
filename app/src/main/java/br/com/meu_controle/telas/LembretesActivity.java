@@ -27,6 +27,9 @@ import androidx.core.view.WindowInsetsCompat;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.textfield.TextInputLayout;
+import com.google.android.material.textfield.TextInputEditText;
 
 import br.com.meu_controle.R;
 import br.com.meu_controle.dados.local.SessaoUsuario;
@@ -299,18 +302,22 @@ public class LembretesActivity extends AppCompatActivity implements LembreteAdap
         int padding = (int) (20 * getResources().getDisplayMetrics().density);
         formulario.setPadding(padding, padding, padding, 0);
 
-        EditText titulo = new EditText(this);
+        TextInputLayout tituloLayout = new TextInputLayout(this);
+        tituloLayout.setHint(getString(R.string.reminder_title_hint));
+        TextInputEditText titulo = new TextInputEditText(tituloLayout.getContext());
         titulo.setSingleLine(true);
-        titulo.setHint(R.string.reminder_title_hint);
         titulo.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
-        formulario.addView(titulo);
+        tituloLayout.addView(titulo);
+        formulario.addView(tituloLayout);
 
-        EditText mensagem = new EditText(this);
-        mensagem.setHint(R.string.reminder_message_hint);
+        TextInputLayout mensagemLayout = new TextInputLayout(this);
+        mensagemLayout.setHint(getString(R.string.reminder_message_hint));
+        TextInputEditText mensagem = new TextInputEditText(mensagemLayout.getContext());
         mensagem.setMinLines(2);
         mensagem.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
                 | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
-        formulario.addView(mensagem);
+        mensagemLayout.addView(mensagem);
+        formulario.addView(mensagemLayout);
 
         TextView dataHora = new TextView(this);
         dataHora.setPadding(0, padding, 0, padding);
@@ -333,7 +340,7 @@ public class LembretesActivity extends AppCompatActivity implements LembreteAdap
             mensagem.setText(original.mensagem);
         }
 
-        AlertDialog dialog = new AlertDialog.Builder(this)
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
                 .setTitle(original == null ? R.string.reminder_new_title : R.string.reminder_edit_title)
                 .setView(formulario)
                 .setPositiveButton(R.string.reminder_save, null)

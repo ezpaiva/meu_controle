@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.time.LocalDate;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
@@ -55,5 +57,17 @@ public final class FormatoFinanceiro {
 
     public static String formatStoredDate(String storedDate) {
         return LocalDate.parse(storedDate).format(DISPLAY_DATE);
+    }
+
+    public static String datePickerMillisToIsoDate(long millis) {
+        return Instant.ofEpochMilli(millis)
+                .atZone(ZoneOffset.UTC)
+                .toLocalDate()
+                .toString();
+    }
+
+    public static long isoDateToDatePickerMillis(String isoDate) {
+        LocalDate data = LocalDate.parse(isoDate);
+        return data.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
     }
 }

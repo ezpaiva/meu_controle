@@ -4,7 +4,7 @@
     android:id="@+id/reminders_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F8F9FA"
+    android:background="@color/background"
     android:orientation="vertical"
     android:padding="20dp">
 

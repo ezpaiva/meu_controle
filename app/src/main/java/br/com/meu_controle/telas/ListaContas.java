@@ -165,11 +165,6 @@ public class ListaContas extends AppCompatActivity {
 
     // ---------- Filtro de categorias ----------
     private void configurarFiltros() {
-        if (exibindoReceitas) {
-            filtroContainer.setVisibility(View.GONE);
-            return;
-        }
-
         filtroContainer.setVisibility(View.VISIBLE);
         spinnerCategoria = findViewById(R.id.category_spinner);
         atualizarOpcoesFiltro(); // começa só com "Todas categorias"
@@ -193,8 +188,6 @@ public class ListaContas extends AppCompatActivity {
 
     /** Busca as categorias de despesa do usuário (ou da família) para montar o filtro. */
     private void carregarCategorias() {
-        if (exibindoReceitas) return;
-
         financasViewModel.buscarCategorias(tipoConta, sessao.obterEmail(),
                 sessao.perfilFamiliar(), sessao.obterGrupoId(),
                 new RetornoRepositorio<List<Categoria>>() {
@@ -281,7 +274,7 @@ public class ListaContas extends AppCompatActivity {
 
         listaContas.removeAllViews();
         mensagemVazia.setText(todasContas.isEmpty() || categoriaFiltro == null
-                ? textoVazioPadrao : "Nenhuma despesa nesta categoria");
+                ? textoVazioPadrao : "Nenhuma movimentação nesta categoria");
         mensagemVazia.setVisibility(contas.isEmpty() ? View.VISIBLE : View.GONE);
 
         long totalCentavos = 0;

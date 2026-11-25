@@ -309,6 +309,7 @@ public class CalendarioActivity extends AppCompatActivity {
                                 : lembrete.createdByName) : "";
                 linha.setText(horario + " • " + lembrete.titulo + "\n"
                         + lembrete.mensagem + responsavel);
+                linha.setTextColor(getColor(R.color.black));
                 linha.setPadding(dp(12), dp(12), dp(12), dp(12));
                 linha.setBackgroundResource(R.drawable.bg_card_border);
                 LinearLayout.LayoutParams parametros = new LinearLayout.LayoutParams(
@@ -344,6 +345,7 @@ public class CalendarioActivity extends AppCompatActivity {
                 conta.responsibleName == null ? conta.ownerEmail : conta.responsibleName) : "";
         descricao.setText(conta.description + "\n" + (receita ? "Receita" : "Despesa")
                 + " • " + conta.category + responsavel);
+        descricao.setTextColor(getColor(R.color.black));
         descricao.setLayoutParams(new LinearLayout.LayoutParams(0,
                 LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
