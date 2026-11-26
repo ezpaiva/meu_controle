@@ -19,7 +19,7 @@
     <color name="status_completed_text">#A5D6A7</color>
     <color name="status_pending_background">#3A3020</color>
     <color name="status_pending_text">#FFD18A</color>
-    <color name="nav_inactive">#B8C0B8</color>
+    <color name="nav_inactive">#FFFFFF</color>
     <color name="receivables_tab_inactive_background">#303530</color>
     <color name="payables_tab_inactive_background">#303530</color>
     <color name="receivables_tab_inactive_text">#D0D5D0</color>

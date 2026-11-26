@@ -90,13 +90,7 @@ public class CalendarioActivity extends AppCompatActivity {
         sincronizacaoViewModel = new ViewModelProvider(this)
                 .get(SincronizacaoViewModel.class);
         lembreteViewModel = new ViewModelProvider(this).get(LembreteViewModel.class);
-        TextView nome = findViewById(R.id.active_space_name_cal);
-        TextView detalhe = findViewById(R.id.active_space_detail_cal);
-        nome.setText(sessao.perfilFamiliar()
-                ? (sessao.obterGrupoNome().isEmpty() ? "Família" : sessao.obterGrupoNome())
-                : "Meu espaço individual");
-        detalhe.setText(sessao.perfilFamiliar()
-                ? sessao.obterMembros().size() + " membros" : "Privado");
+        atualizarEspacoAtivo();
 
         tituloMes = findViewById(R.id.titulo_mes);
         grade = findViewById(R.id.grade_calendario);
@@ -136,6 +130,7 @@ public class CalendarioActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        atualizarEspacoAtivo();
         carregarContas();
 
         sincronizacaoViewModel.sincronizar(new RetornoRepositorio<Void>() {
@@ -305,8 +300,9 @@ public class CalendarioActivity extends AppCompatActivity {
                 String horario = lembrete.hora;
                 String responsavel = sessao.perfilFamiliar()
                         ? "\n" + getString(R.string.calendar_responsible,
-                        lembrete.createdByName == null ? lembrete.ownerEmail
-                                : lembrete.createdByName) : "";
+                        lembrete.createdByName == null || lembrete.createdByName.trim().isEmpty()
+                                ? autorAlternativo(lembrete.ownerEmail)
+                                : lembrete.createdByName.trim()) : "";
                 linha.setText(horario + " • " + lembrete.titulo + "\n"
                         + lembrete.mensagem + responsavel);
                 linha.setTextColor(getColor(R.color.black));
@@ -342,7 +338,9 @@ public class CalendarioActivity extends AppCompatActivity {
         TextView descricao = new TextView(this);
         String responsavel = sessao.perfilFamiliar()
                 ? "\n" + getString(R.string.calendar_responsible,
-                conta.responsibleName == null ? conta.ownerEmail : conta.responsibleName) : "";
+                conta.responsibleName == null || conta.responsibleName.trim().isEmpty()
+                        ? autorAlternativo(conta.ownerEmail)
+                        : conta.responsibleName.trim()) : "";
         descricao.setText(conta.description + "\n" + (receita ? "Receita" : "Despesa")
                 + " • " + conta.category + responsavel);
         descricao.setTextColor(getColor(R.color.black));
@@ -421,6 +419,24 @@ public class CalendarioActivity extends AppCompatActivity {
 
     private int dp(int valor) {
         return Math.round(valor * getResources().getDisplayMetrics().density);
+    }
+
+    private void atualizarEspacoAtivo() {
+        TextView nome = findViewById(R.id.active_space_name_cal);
+        TextView detalhe = findViewById(R.id.active_space_detail_cal);
+        String nomeGrupo = sessao.obterGrupoNome();
+        nome.setText(sessao.perfilFamiliar()
+                ? (nomeGrupo == null || nomeGrupo.trim().isEmpty()
+                ? getString(R.string.active_space_family) : nomeGrupo.trim())
+                : getString(R.string.active_space_individual));
+        detalhe.setText(sessao.perfilFamiliar()
+                ? getString(R.string.active_space_members, sessao.obterMembros().size())
+                : getString(R.string.active_space_private));
+    }
+
+    private String autorAlternativo(String email) {
+        return email == null || email.trim().isEmpty()
+                ? getString(R.string.calendar_responsible_unknown) : email.trim();
     }
 
     // ---------- Navegação inferior (igual à versão anterior) ----------

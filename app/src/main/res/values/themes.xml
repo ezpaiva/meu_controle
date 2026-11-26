@@ -25,7 +25,7 @@
     </style>
 
     <style name="TextAppearance.BottomNavigation.Active"
-        parent="TextAppearance.MaterialComponents.Caption">
+        parent="TextAppearance.Material3.LabelMedium">
         <item name="android:textSize">12sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:gravity">center</item>
@@ -34,9 +34,11 @@
     </style>
 
     <style name="TextAppearance.BottomNavigation.Inactive"
-        parent="TextAppearance.MaterialComponents.Caption">
+        parent="TextAppearance.Material3.LabelMedium">
         <item name="android:textSize">12sp</item>
         <item name="android:textStyle">bold</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textAlignment">center</item>
         <item name="android:maxLines">1</item>
     </style>
 </resources>

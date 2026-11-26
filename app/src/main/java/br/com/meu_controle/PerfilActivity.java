@@ -51,9 +51,7 @@ public class PerfilActivity extends AppCompatActivity {
         lembreteViewModel = new ViewModelProvider(this).get(LembreteViewModel.class);
 
         // Preenche os dados
-        ((TextView) findViewById(R.id.profile_space_name)).setText(sessao.perfilFamiliar() ? "Família" : "Meu espaço individual");
-        ((TextView) findViewById(R.id.profile_space_detail)).setText(sessao.perfilFamiliar()
-                ? sessao.obterMembros().size() + " membros" : "Privado");
+        atualizarEspacoAtivo();
         ((TextView) findViewById(R.id.profile_name)).setText(sessao.obterNome());
         ((TextView) findViewById(R.id.profile_email)).setText(sessao.obterEmailContato());
         ((TextView) findViewById(R.id.profile_type)).setText(sessao.perfilFamiliar() ? "Perfil Familiar" : "Perfil Individual");
@@ -119,6 +117,7 @@ public class PerfilActivity extends AppCompatActivity {
         if (sessao != null) {
             ((TextView) findViewById(R.id.profile_name)).setText(sessao.obterNome());
             ((TextView) findViewById(R.id.profile_email)).setText(sessao.obterEmailContato());
+            atualizarEspacoAtivo();
             if (notificacoes != null) {
                 notificacoes.setChecked(sessao.isNotificationsEnabled());
             }
@@ -146,10 +145,14 @@ public class PerfilActivity extends AppCompatActivity {
                     ? getString(R.string.family_first_account_group_hint)
                     : getString(R.string.family_group_name, grupo.nome));
             if (grupo != null) {
-                ((TextView) findViewById(R.id.profile_space_name)).setText(grupo.nome);
+                String nomeGrupoAtual = grupo.nome;
+                ((TextView) findViewById(R.id.profile_space_name)).setText(
+                        nomeGrupoAtual == null || nomeGrupoAtual.trim().isEmpty()
+                                ? getString(R.string.active_space_family)
+                                : nomeGrupoAtual.trim());
             } else {
                 ((TextView) findViewById(R.id.profile_space_name))
-                        .setText(R.string.perfil_familiar_title);
+                        .setText(R.string.active_space_family);
             }
         });
         grupoViewModel.observarMembros().observe(this, membros -> {
@@ -287,5 +290,16 @@ public class PerfilActivity extends AppCompatActivity {
         NavegacaoInferior.configurar(this,
                 (BottomNavigationView) findViewById(R.id.bottom_navigation),
                 R.id.nav_perfil);
+    }
+
+    private void atualizarEspacoAtivo() {
+        String nomeGrupo = sessao.obterGrupoNome();
+        ((TextView) findViewById(R.id.profile_space_name)).setText(sessao.perfilFamiliar()
+                ? (nomeGrupo == null || nomeGrupo.trim().isEmpty()
+                ? getString(R.string.active_space_family) : nomeGrupo.trim())
+                : getString(R.string.active_space_individual));
+        ((TextView) findViewById(R.id.profile_space_detail)).setText(sessao.perfilFamiliar()
+                ? getString(R.string.active_space_members, sessao.obterMembros().size())
+                : getString(R.string.active_space_private));
     }
 }

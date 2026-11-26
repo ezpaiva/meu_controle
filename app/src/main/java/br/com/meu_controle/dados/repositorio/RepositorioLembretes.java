@@ -129,7 +129,7 @@ public class RepositorioLembretes {
                     lembrete.criadoEm = System.currentTimeMillis();
                 }
                 lembrete.updatedAt = System.currentTimeMillis();
-                lembrete.syncPending = lembrete.groupId != null;
+                lembrete.syncPending = temGrupo(lembrete.groupId);
                 long id = lembreteDao.inserir(lembrete);
                 lembrete.id = id;
                 scheduler.scheduleNotification(lembrete);
@@ -146,7 +146,7 @@ public class RepositorioLembretes {
             try {
                 scheduler.cancelNotification(lembrete.id);
                 lembrete.updatedAt = System.currentTimeMillis();
-                lembrete.syncPending = lembrete.groupId != null;
+                lembrete.syncPending = temGrupo(lembrete.groupId);
                 lembreteDao.atualizar(lembrete);
                 scheduler.scheduleNotification(lembrete);
                 sincronizarGrupoSeNecessario(lembrete);
@@ -161,7 +161,7 @@ public class RepositorioLembretes {
         EXECUTOR.execute(() -> {
             try {
                 scheduler.cancelNotification(lembrete.id);
-                if (lembrete.groupId != null) {
+                if (temGrupo(lembrete.groupId)) {
                     lembreteDao.marcarExcluido(lembrete.id, System.currentTimeMillis());
                     lembrete.syncPending = true;
                     lembrete.deleted = true;
@@ -204,7 +204,7 @@ public class RepositorioLembretes {
 
         if (existentes.isEmpty()) {
             novo.updatedAt = agora;
-            novo.syncPending = novo.groupId != null;
+            novo.syncPending = temGrupo(novo.groupId);
             novo.id = lembreteDao.inserir(novo);
             scheduler.scheduleNotification(novo);
             sincronizarGrupoSeNecessario(novo);
@@ -229,7 +229,7 @@ public class RepositorioLembretes {
         atual.createdByName = novo.createdByName;
         atual.contaRemoteId = novo.contaRemoteId;
         atual.updatedAt = agora;
-        atual.syncPending = atual.groupId != null;
+        atual.syncPending = temGrupo(atual.groupId);
 
         lembreteDao.atualizar(atual);
         scheduler.scheduleNotification(atual);
@@ -271,7 +271,7 @@ public class RepositorioLembretes {
     private void cancelarEExcluirDaConta(long contaId) {
         for (Lembrete lembrete : lembreteDao.buscarPorConta(contaId)) {
             scheduler.cancelNotification(lembrete.id);
-            if (lembrete.groupId != null) {
+            if (temGrupo(lembrete.groupId)) {
                 lembrete.updatedAt = System.currentTimeMillis();
                 lembrete.syncPending = true;
                 lembrete.deleted = true;
@@ -287,8 +287,12 @@ public class RepositorioLembretes {
      * RNF03: sincronização pós-CRUD não pode derrubar a operação local.
      * Qualquer falha remota é logada e ignorada — o registro já está no Room.
      */
+    private boolean temGrupo(String groupId) {
+        return groupId != null && !groupId.trim().isEmpty();
+    }
+
     private void sincronizarGrupoSeNecessario(Lembrete lembrete) {
-        if (lembrete == null || lembrete.groupId == null) {
+        if (lembrete == null || !temGrupo(lembrete.groupId)) {
             return;
         }
         try {

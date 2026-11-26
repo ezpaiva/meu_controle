@@ -63,7 +63,7 @@ public class LembreteAdapter extends RecyclerView.Adapter<LembreteAdapter.Lembre
             holder.conta.setText(holder.itemView.getContext().getString(
                     R.string.reminder_account_label, item.contaDescricao));
         }
-        if (lembrete.groupId == null) {
+        if (lembrete.groupId == null || lembrete.groupId.trim().isEmpty()) {
             holder.criadoPor.setVisibility(View.GONE);
         } else {
             String responsavel = lembrete.createdByName == null

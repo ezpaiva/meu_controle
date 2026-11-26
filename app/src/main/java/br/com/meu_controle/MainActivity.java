@@ -164,8 +164,9 @@ public class MainActivity extends AppCompatActivity {
         TextView detalheEspaco = findViewById(R.id.dashboard_space_detail);
 
         if (sessao.perfilFamiliar()) {
-            nomeEspaco.setText(sessao.obterGrupoNome().isEmpty()
-                    ? getString(R.string.active_space_family) : sessao.obterGrupoNome());
+            String nomeGrupo = sessao.obterGrupoNome();
+            nomeEspaco.setText(nomeGrupo == null || nomeGrupo.trim().isEmpty()
+                    ? getString(R.string.active_space_family) : nomeGrupo.trim());
             detalheEspaco.setText(getString(R.string.active_space_members,
                     sessao.obterMembros().size()));
         } else {

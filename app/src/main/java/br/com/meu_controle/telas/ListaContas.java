@@ -238,9 +238,14 @@ public class ListaContas extends AppCompatActivity {
     private void atualizarEspacoAtivo() {
         TextView nomeEspaco = findViewById(R.id.active_space_name);
         TextView detalheEspaco = findViewById(R.id.active_space_detail);
-        nomeEspaco.setText(sessao.perfilFamiliar() ? "Família" : "Meu espaço individual");
+        String nomeGrupo = sessao.obterGrupoNome();
+        nomeEspaco.setText(sessao.perfilFamiliar()
+                ? (nomeGrupo == null || nomeGrupo.trim().isEmpty()
+                ? getString(R.string.active_space_family) : nomeGrupo.trim())
+                : getString(R.string.active_space_individual));
         detalheEspaco.setText(sessao.perfilFamiliar()
-                ? sessao.obterMembros().size() + " membros" : "Privado");
+                ? getString(R.string.active_space_members, sessao.obterMembros().size())
+                : getString(R.string.active_space_private));
     }
 
     private void abrirNovaConta() {
@@ -313,8 +318,14 @@ public class ListaContas extends AppCompatActivity {
         }
 
         String metaTexto = conta.category + " • " + FormatoFinanceiro.formatStoredDate(conta.dueDate);
-        if (sessao.perfilFamiliar() && conta.responsibleName != null) {
-            metaTexto += " • " + conta.responsibleName;
+        if (sessao.perfilFamiliar()) {
+            String responsavel = conta.responsibleName;
+            if (responsavel == null || responsavel.trim().isEmpty()) {
+                responsavel = conta.ownerEmail;
+            }
+            if (responsavel != null && !responsavel.trim().isEmpty()) {
+                metaTexto += " • " + responsavel.trim();
+            }
         }
         metadata.setText(metaTexto);
 

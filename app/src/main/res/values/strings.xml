@@ -203,4 +203,5 @@
         <item>Educação</item>
         <item>Outros</item>
     </string-array>
+    <string name="calendar_responsible_unknown">Responsável não identificado</string>
 </resources>

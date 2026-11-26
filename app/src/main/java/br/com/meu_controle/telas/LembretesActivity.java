@@ -52,6 +52,7 @@ public class LembretesActivity extends AppCompatActivity implements LembreteAdap
 
     private LembreteViewModel viewModel;
     private LembreteAdapter adapter;
+    private SessaoUsuario sessao;
     private TextView mensagemVazia;
     private MaterialButton filtroAtivos;
     private MaterialButton filtroConcluidos;
@@ -82,11 +83,12 @@ public class LembretesActivity extends AppCompatActivity implements LembreteAdap
             return windowInsets;
         });
 
-        SessaoUsuario sessao = new SessaoUsuario(this);
+        sessao = new SessaoUsuario(this);
         email = sessao.obterEmail();
         groupId = sessao.obterGrupoId();
         if (email == null) email = "";
-        if (groupId == null) groupId = "";
+        if (groupId != null && groupId.trim().isEmpty()) groupId = null;
+        atualizarEspacoAtivo();
 
         viewModel = new ViewModelProvider(this).get(LembreteViewModel.class);
 
@@ -154,7 +156,8 @@ public class LembretesActivity extends AppCompatActivity implements LembreteAdap
         });
 
         // Sincronização best-effort (RNF03): só mostra Snackbar em erro de contrato.
-        boolean podeSincronizar = !email.isEmpty() && !groupId.isEmpty();
+        boolean podeSincronizar = !email.isEmpty()
+                && groupId != null && !groupId.trim().isEmpty();
         if (podeSincronizar) {
             viewModel.sincronizar(new RetornoRepositorio<Void>() {
                 @Override
@@ -179,6 +182,26 @@ public class LembretesActivity extends AppCompatActivity implements LembreteAdap
             Log.d(TAG, "Sincronização ignorada: email ou groupId ausente "
                     + "(email=" + email + ", groupId=" + groupId + ")");
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        atualizarEspacoAtivo();
+    }
+
+    private void atualizarEspacoAtivo() {
+        String nomeGrupo = sessao.obterGrupoNome();
+        ((TextView) findViewById(R.id.reminders_space_name)).setText(
+                sessao.perfilFamiliar()
+                        ? (nomeGrupo == null || nomeGrupo.trim().isEmpty()
+                        ? getString(R.string.active_space_family) : nomeGrupo.trim())
+                        : getString(R.string.active_space_individual));
+        ((TextView) findViewById(R.id.reminders_space_detail)).setText(
+                sessao.perfilFamiliar()
+                        ? getString(R.string.active_space_members,
+                        sessao.obterMembros().size())
+                        : getString(R.string.active_space_private));
     }
 
     /**
@@ -375,7 +398,9 @@ public class LembretesActivity extends AppCompatActivity implements LembreteAdap
                 original == null ? System.currentTimeMillis() : original.criadoEm,
                 original != null && original.notificado,
                 original == null ? email : original.ownerEmail);
-        lembrete.groupId = original == null ? groupId : original.groupId;
+        String grupoLembrete = original == null ? groupId : original.groupId;
+        lembrete.groupId = grupoLembrete == null || grupoLembrete.trim().isEmpty()
+                ? null : grupoLembrete.trim();
         lembrete.createdByName = original == null
                 ? new SessaoUsuario(this).obterNome() : original.createdByName;
         lembrete.remoteId = original == null ? null : original.remoteId;

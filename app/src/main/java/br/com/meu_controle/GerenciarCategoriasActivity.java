@@ -78,6 +78,7 @@ public class GerenciarCategoriasActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         if (financasViewModel != null) {
+            atualizarEspacoAtivo();
             carregarCategorias();
         }
     }
@@ -85,10 +86,14 @@ public class GerenciarCategoriasActivity extends AppCompatActivity {
     private void atualizarEspacoAtivo() {
         TextView nome = findViewById(R.id.active_space_name);
         TextView detalhe = findViewById(R.id.active_space_detail);
-        nome.setText(sessao.perfilFamiliar() ? "Família" : "Meu espaço individual");
+        String nomeGrupo = sessao.obterGrupoNome();
+        nome.setText(sessao.perfilFamiliar()
+                ? (nomeGrupo == null || nomeGrupo.trim().isEmpty()
+                ? getString(R.string.active_space_family) : nomeGrupo.trim())
+                : getString(R.string.active_space_individual));
         detalhe.setText(sessao.perfilFamiliar()
-                ? sessao.obterMembros().size() + " membros"
-                : "Privado");
+                ? getString(R.string.active_space_members, sessao.obterMembros().size())
+                : getString(R.string.active_space_private));
     }
 
     private void configurarToggle() {
